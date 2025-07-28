@@ -1,153 +1,73 @@
-﻿// using Quixant.LibRAV;
+﻿using Quixant.Core;
 
-// var server = new TcpServer(5000);
-// var deviceManager = new DeviceManager();
+Console.WriteLine("Quixant.LibQxt example - lp_intrusions");
 
-// // Start devices
-// deviceManager.StartAllDevices();
+Console.Write("Initializing core...");
+CoreManager core = CoreManager.GetDefault();
+Console.WriteLine("done\n");
 
-// Console.WriteLine("✅ Server started. Waiting for Unity client...");
-
-// // Accept Unity connection
-// await server.WaitForClientAsync();
-
-// Console.WriteLine("🎮 Unity client connected!");
-
-// while (true)
-// {
-//     Console.Write("Enter message: ");
-//     var input = Console.ReadLine();
-
-//     if (string.IsNullOrWhiteSpace(input))
-//         continue;
-
-//     await server.SendMessageAsync(input);
-// }
-using System.Drawing;
-using Quixant.LibRAV;
-
-class Program
+core.LoggingProcessor.DoorStateChanged += (sender, e) =>
 {
-    private static bool exitRequested = false;
+    Console.WriteLine($"\n >> Intrusion door #{e.DoorIndex} {e.State} ({e.EventsInLog} events in log)");
+};
 
-    static async Task Main(string[] args)
+Console.WriteLine("Configuring intrusion doors 0-7 to Normally Open...");
+Console.WriteLine("WARNING: THIS SETUP WILL PERSIST UNTIL CHANGED AGAIN BY USER");
+
+bool confirm = false, validAnswer = false;
+
+while (!validAnswer)
+{
+    Console.Write("Do you want to continue? (y/n): ");
+    string? answer = Console.ReadLine();
+
+    if (answer == null)
+        continue;
+
+    if (answer.Equals("y", StringComparison.InvariantCultureIgnoreCase) || answer.Equals("yes", StringComparison.InvariantCultureIgnoreCase))
     {
-        // var server = new TcpServer(5000);
-
-        Console.WriteLine("Starting device...");
-        Console.WriteLine("\nDeviceManager Interactive Console");
-        Console.WriteLine("==================================");
-        Console.WriteLine("Commands:");
-        Console.WriteLine("  [1] Start poll");
-        Console.WriteLine("  [2] Stop poll");
-        Console.WriteLine("  [3] Return bill");
-        Console.WriteLine("  [4] Stack bill extension");
-        Console.WriteLine("  [5] Exit");
-        Console.WriteLine("  [7] Animate Colors");
-        Console.WriteLine("  [8] Dispose Led controller");
-        Console.WriteLine("  [9] Print Demo Ticket");
-
-        Console.WriteLine();
-        // var deviceManager = new DeviceManager((port) => new MEIDeviceAdapter(port));
-        var deviceManager = new DeviceManager((port) => new JCMDeviceAdapter(port));
-        var deviceThread = new Thread(() =>
-               {
-                   deviceManager.Initalize();
-
-               });
-
-        deviceThread.Start();
-
-
-
-        var nfcReader = new NFCReader();
-        var nfcThread = new Thread(() =>
-        {
-            nfcReader.Init();
-        });
-
-        nfcThread.Start();
-
-
-        var ledController = new LEDController();
-
-        var ledThread = new Thread(() =>
-        {
-            ledController.Init();
-            ledController.ApplyPattern(0, new SolidColorPattern(Color.Blue));
-            ledController.ApplyPattern(1, new HearthbeatPattern(Color.Red));
-            ledController.ApplyPattern(2, new LoopFadePattern());
-            ledController.ApplyPattern(3, new RainbowPattern());
-        });
-
-        ledThread.Start();
-        IPrinter printerService = new JCMPrinterImpl();
-
-        var printerThread = new Thread(() =>
-              {
-                  printerService.Init();
-                  printerService.PrintDemoTicket();
-              });
-
-        printerThread.Start();
-
-        var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader));
-        inputThread.Start();
-        Console.WriteLine("✅ Server started. Waiting for Unity client...");
-
-        // Wait for Unity connection
-        // await server.WaitForClientAsync();
-
-        Console.WriteLine("🎮 Unity client connected!");
-
+        confirm = true;
+        validAnswer = true;
     }
-
-    private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader)
+    else if (answer.Equals("n", StringComparison.InvariantCultureIgnoreCase) || answer.Equals("no", StringComparison.InvariantCultureIgnoreCase))
     {
-        while (!exitRequested)
-        {
-            Console.Write("Main InputLoop() Enter command number: ");
-            var input = Console.ReadLine()?.Trim();
-
-            if (string.IsNullOrEmpty(input))
-                continue;
-
-            switch (input)
-            {
-                case "1":
-                    manager.StartPolling();
-                    break;
-
-                case "2":
-                    manager.StopPolling();
-                    break;
-
-                case "3":
-                    manager.ReturnBill();
-                    break;
-
-                case "4":
-                    manager.StackBill();
-                    break;
-                case "5":
-                    Console.WriteLine("Exiting...");
-                    exitRequested = true;
-                    manager.StopPolling();
-                    nFCReader.StopPolling();
-                    return;
-                case "7":
-                    ledController.ApplyPatterns();
-                    break;
-                case "8":
-                    ledController.DisposeController();
-                    break;
-                case "9":
-                    printerService.PrintDemoTicket();
-                    break;
-                default:
-                    Console.WriteLine("Invalid command.");
-                    break;
-            }
-        }
+        confirm = false;
+        validAnswer = true;
     }
 }
+
+if (!confirm)
+{
+    Console.WriteLine("Intrusion door configuration skipped.");
+}
+else
+{
+    core.LoggingProcessor.IntrusionDoors.Configure([
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO,
+        DoorSwitchConfiguration.NO
+    ]);
+    Console.WriteLine("Intrusion door configuration completed.");
+}
+
+Console.WriteLine("Polling intrusion doors state every 5 seconds. Press ENTER or ^C to exit.");
+
+ThreadPool.QueueUserWorkItem(_ =>
+{
+    while (true)
+    {
+        var ds = core.LoggingProcessor.IntrusionDoors.DoorStatus;
+        ds.Refresh();
+        Console.WriteLine($"[{DateTime.Now.ToString()}] #0: {ds[0]}, #1: {ds[1]},  #2: {ds[2]},  #3: {ds[3]},  #4: {ds[4]},  #5: {ds[5]},  #6: {ds[6]},  #7: {ds[7]}");
+        Thread.Sleep(5000);
+    }
+});
+
+Console.ReadLine();
+
+return 0;
