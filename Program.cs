@@ -1,73 +1,133 @@
 ﻿using Quixant.Core;
 
-Console.WriteLine("Quixant.LibQxt example - lp_intrusions");
+Console.WriteLine("Quixant.LibQxt example - gpio_dout");
 
 Console.Write("Initializing core...");
 CoreManager core = CoreManager.GetDefault();
 Console.WriteLine("done\n");
 
-core.LoggingProcessor.DoorStateChanged += (sender, e) =>
+bool quit = false;
+
+Console.WriteLine("Available commands: set, clear, blink, quit");
+
+while (!quit)
 {
-    Console.WriteLine($"\n >> Intrusion door #{e.DoorIndex} {e.State} ({e.EventsInLog} events in log)");
-};
+    Console.Write("> ");
+    string? inputLine = Console.ReadLine();
+    if (inputLine == null)
+        continue;
+    List<string> input = new List<string>(inputLine.Split(' '));
 
-Console.WriteLine("Configuring intrusion doors 0-7 to Normally Open...");
-Console.WriteLine("WARNING: THIS SETUP WILL PERSIST UNTIL CHANGED AGAIN BY USER");
-
-bool confirm = false, validAnswer = false;
-
-while (!validAnswer)
-{
-    Console.Write("Do you want to continue? (y/n): ");
-    string? answer = Console.ReadLine();
-
-    if (answer == null)
+    if (input.Count == 0)
         continue;
 
-    if (answer.Equals("y", StringComparison.InvariantCultureIgnoreCase) || answer.Equals("yes", StringComparison.InvariantCultureIgnoreCase))
+    switch (input[0].ToLower())
     {
-        confirm = true;
-        validAnswer = true;
-    }
-    else if (answer.Equals("n", StringComparison.InvariantCultureIgnoreCase) || answer.Equals("no", StringComparison.InvariantCultureIgnoreCase))
-    {
-        confirm = false;
-        validAnswer = true;
+        case "quit":
+            quit = true;
+            break;
+        case "set":
+        case "clear":
+            {
+                bool isSet = input[0].ToLower() == "set";
+
+                if (input.Count < 2)
+                {
+                    Console.WriteLine($"Usage: {input[0].ToLower()} <pin>[,<pin>...]");
+                    break;
+                }
+
+                string cleanPinText = string.Empty;
+
+                foreach (string pin in input.Skip(1))
+                {
+                    cleanPinText += pin.Trim();
+                }
+
+                List<int> pins = [];
+
+                try
+                {
+                    pins = cleanPinText.Split(',').Select(x => int.Parse(x)).ToList();
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Invalid pin number");
+                    break;
+                }
+
+
+                if (pins.Count == 0)
+                {
+                    Console.WriteLine("Invalid pin number");
+                    break;
+                }
+
+                if (pins.Count == 1)
+                {
+                    Console.Write($"{(isSet ? "SetOutputPin" : "ClearOutputPin")}({pins[0]})...");
+                    if (isSet)
+                        core.GPIO.SetOutputPin(pins[0]);
+                    else
+                        core.GPIO.ClearOutputPin(pins[0]);
+                    Console.WriteLine("done");
+                }
+                else
+                {
+                    ulong mask = 0;
+                    ulong value = isSet ? 0xFFFFFFFFFFFFFFFFUL : 0x0UL;
+
+                    foreach (int pin in pins)
+                    {
+                        mask |= (0x1UL << pin);
+                    }
+
+                    Console.Write($"DigitalOutput(0x{mask:X16}, 0x{value:X16})...");
+                    core.GPIO.DigitalOutput(value, mask);
+                    Console.WriteLine("done");
+                }
+            }
+            break;
+        case "blink":
+            {
+                if (input.Count != 2)
+                {
+                    Console.WriteLine("Usage: blink <pin>");
+                    break;
+                }
+
+                int pin = -1;
+
+                try
+                {
+                    pin = int.Parse(input[1]);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Invalid pin number");
+                    break;
+                }
+
+                if (pin < 0)
+                {
+                    Console.WriteLine("Invalid pin number");
+                    break;
+                }
+
+                Console.Write($"PlayPattern({pin}, 4, 0x000000000000000C)...");
+                core.GPIO.PlayPattern(pin, 4, 0xCUL);
+                Console.Write("done\nPress ENTER to stop blinking...");
+                Console.ReadLine();
+                Console.Write($"StopPattern({pin})...");
+                core.GPIO.StopPattern(pin);
+                Console.WriteLine("done");
+            }
+            break;
+        default:
+            Console.WriteLine($"Unknown command: {input[0].ToLower()}");
+            break;
+
     }
 }
-
-if (!confirm)
-{
-    Console.WriteLine("Intrusion door configuration skipped.");
-}
-else
-{
-    core.LoggingProcessor.IntrusionDoors.Configure([
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO,
-        DoorSwitchConfiguration.NO
-    ]);
-    Console.WriteLine("Intrusion door configuration completed.");
-}
-
-Console.WriteLine("Polling intrusion doors state every 5 seconds. Press ENTER or ^C to exit.");
-
-ThreadPool.QueueUserWorkItem(_ =>
-{
-    while (true)
-    {
-        var ds = core.LoggingProcessor.IntrusionDoors.DoorStatus;
-        ds.Refresh();
-        Console.WriteLine($"[{DateTime.Now.ToString()}] #0: {ds[0]}, #1: {ds[1]},  #2: {ds[2]},  #3: {ds[3]},  #4: {ds[4]},  #5: {ds[5]},  #6: {ds[6]},  #7: {ds[7]}");
-        Thread.Sleep(5000);
-    }
-});
-
-Console.ReadLine();
 
 return 0;
