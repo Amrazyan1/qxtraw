@@ -1,29 +1,4 @@
-﻿// using Quixant.LibRAV;
-
-// var server = new TcpServer(5000);
-// var deviceManager = new DeviceManager();
-
-// // Start devices
-// deviceManager.StartAllDevices();
-
-// Console.WriteLine("✅ Server started. Waiting for Unity client...");
-
-// // Accept Unity connection
-// await server.WaitForClientAsync();
-
-// Console.WriteLine("🎮 Unity client connected!");
-
-// while (true)
-// {
-//     Console.Write("Enter message: ");
-//     var input = Console.ReadLine();
-
-//     if (string.IsNullOrWhiteSpace(input))
-//         continue;
-
-//     await server.SendMessageAsync(input);
-// }
-using System.Drawing;
+﻿using System.Drawing;
 using Quixant.LibRAV;
 using qxtraw.Infrastructure.Devices.LED.Presentation;
 
@@ -61,8 +36,6 @@ class Program
 
         deviceThread.Start();
 
-
-
         var nfcReader = new NFCReader();
         var nfcThread = new Thread(() =>
         {
@@ -93,8 +66,11 @@ class Program
               });
 
         printerThread.Start();
+        var meter = new MetterStepper();
 
-        var inputThread = new Thread(() => InputLoop(deviceManager, _ledController, printerService, nfcReader));
+
+        var inputThread = new Thread(() => InputLoop(deviceManager, _ledController, printerService, nfcReader, meter));
+
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
 
@@ -213,10 +189,11 @@ class Program
                 Console.WriteLine("Stopping all LED effects.");
                 _ledController.StopAllLoops();
                 break;
+
         }
     }
 
-    private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader)
+    private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader, MetterStepper metterStepper)
     {
         while (!exitRequested)
         {
@@ -257,6 +234,9 @@ class Program
                     break;
                 case "9":
                     printerService.PrintDemoTicket();
+                    break;
+                case "10":
+                    metterStepper.TickMeter(0);
                     break;
                 default:
                     Console.WriteLine("Invalid command.");
