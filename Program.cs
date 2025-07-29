@@ -153,7 +153,7 @@ class Program
                                 Console.WriteLine("Invalid HEARTBEAT pattern format. Expected: LED_PATTERN:<channel>:HEARTBEAT:<R>:<G>:<B>");
                             }
                             break;
-                        case "LOOPFADE":
+                        case "LOOP_FADE":
                             _ledController.ApplyPattern(patternChannel, new LoopFadePattern());
                             break;
                         case "RAINBOW":
