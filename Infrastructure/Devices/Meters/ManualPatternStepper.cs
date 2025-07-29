@@ -38,6 +38,23 @@ public class ManualPatternStepper
         _currentFrame++;
     }
 
+    public async Task TickMeterAsync(int pulseDurationMs = 1)
+    {
+        ulong mask = 1UL << _pin;
+
+        // HIGH: Set pin ON
+        _gpio.DigitalOutput(mask, mask);
+
+        // Wait
+        await Task.Delay(pulseDurationMs);
+
+        // LOW: Set pin OFF
+        _gpio.DigitalOutput(0, mask);
+
+        // Wait again (optional)
+        await Task.Delay(pulseDurationMs);
+    }
+
     public void Reset()
     {
         _currentFrame = 0;

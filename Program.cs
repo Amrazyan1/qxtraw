@@ -20,7 +20,7 @@ while (!quit)
         continue;
     List<string> input = new List<string>(inputLine.Split(' '));
 
-    manualPatternStepper.Step();
+    manualPatternStepper.TickMeterAsync();
     continue;
     if (input.Count == 0)
         continue;
