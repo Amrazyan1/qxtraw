@@ -105,6 +105,7 @@ class Program
                 }
                 break;
 
+
             case "LED_OFF":
                 if (parts.Length == 2 && int.TryParse(parts[1], out int offChannel))
                 {
@@ -158,8 +159,35 @@ class Program
                         case "RAINBOW":
                             _ledController.ApplyPattern(patternChannel, new RainbowPattern());
                             break;
-                        case "SEGMENTEDCOLORCHASE":
-                            _ledController.ApplyPattern(patternChannel, new SegmentedColorChasePattern());
+                        case "RAINDOW_WHEEL":
+                            _ledController.ApplyPattern(patternChannel, new RainbowWheelPattern());
+                            break;
+                        case "BIG_WIN":
+                            if (parts.Length == 6 &&
+                                    byte.TryParse(parts[3], out byte br) && byte.TryParse(parts[4], out byte bg) &&
+                                    byte.TryParse(parts[5], out byte bb))
+                            {
+
+                                _ledController.ApplyPattern(patternChannel, new BigWinBlinkPattern(Color.FromArgb(br, bg, bb)));
+                            }
+                            break;
+                        case "JACKPOT":
+                            if (parts.Length == 6 &&
+                                    byte.TryParse(parts[3], out byte jr) && byte.TryParse(parts[4], out byte jg) &&
+                                    byte.TryParse(parts[5], out byte jb))
+                            {
+
+                                _ledController.ApplyPattern(patternChannel, new JackpotPulsePattern(Color.FromArgb(jr, jg, jb)));
+                            }
+                            break;
+                        case "CHASE":
+                            if (parts.Length == 6 &&
+                                    byte.TryParse(parts[3], out byte chr) && byte.TryParse(parts[4], out byte chg) &&
+                                    byte.TryParse(parts[5], out byte chb))
+                            {
+
+                                _ledController.ApplyPattern(patternChannel, new ChasePattern(Color.FromArgb(chr, chg, chb)));
+                            }
                             break;
                         // Add more cases for other patterns you define
                         default:
