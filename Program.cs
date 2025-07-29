@@ -73,7 +73,8 @@ class Program
 
         printerThread.Start();
         var meter = new MetterStepper();
-
+        var doorStatusHandler = new DoorStatusHandler();
+        doorStatusHandler.Poll();
         var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader, meter));
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
