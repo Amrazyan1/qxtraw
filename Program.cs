@@ -25,6 +25,7 @@
 // }
 using System.Drawing;
 using Quixant.LibRAV;
+using qxtraw.Infrastructure.Devices.LED.Presentation;
 
 class Program
 {
@@ -177,8 +178,8 @@ class Program
                         case "RAINBOW":
                             _ledController.ApplyPattern(patternChannel, new RainbowPattern());
                             break;
-                        case "RAINBOWCHAIN":
-                            _ledController.ApplyPattern(patternChannel, new RainbowChainPattern());
+                        case "SEGMENTEDCOLORCHASE":
+                            _ledController.ApplyPattern(patternChannel, new SegmentedColorChasePattern());
                             break;
                         // Add more cases for other patterns you define
                         default:
