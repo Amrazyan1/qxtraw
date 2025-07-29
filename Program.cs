@@ -1,138 +1,153 @@
-﻿using Quixant.Core;
+﻿// using Quixant.LibRAV;
 
-Console.WriteLine("Quixant.LibQxt example - gpio_dout");
+// var server = new TcpServer(5000);
+// var deviceManager = new DeviceManager();
 
-Console.Write("Initializing core...");
-CoreManager core = CoreManager.GetDefault();
-Console.WriteLine("done\n");
+// // Start devices
+// deviceManager.StartAllDevices();
 
-bool quit = false;
+// Console.WriteLine("✅ Server started. Waiting for Unity client...");
 
-Console.WriteLine("Available commands: set, clear, blink, quit");
-ManualPatternStepper manualPatternStepper = new ManualPatternStepper(core.GPIO, 0, 4, 0xCUL);
+// // Accept Unity connection
+// await server.WaitForClientAsync();
 
+// Console.WriteLine("🎮 Unity client connected!");
 
-while (!quit)
+// while (true)
+// {
+//     Console.Write("Enter message: ");
+//     var input = Console.ReadLine();
+
+//     if (string.IsNullOrWhiteSpace(input))
+//         continue;
+
+//     await server.SendMessageAsync(input);
+// }
+using System.Drawing;
+using Quixant.LibRAV;
+
+class Program
 {
-    Console.Write("> ");
-    string? inputLine = Console.ReadLine();
-    if (inputLine == null)
-        continue;
-    List<string> input = new List<string>(inputLine.Split(' '));
+    private static bool exitRequested = false;
 
-    manualPatternStepper.TickMeter();
-    continue;
-    if (input.Count == 0)
-        continue;
-
-    switch (input[0].ToLower())
+    static async Task Main(string[] args)
     {
-        case "quit":
-            quit = true;
-            break;
-        case "set":
-        case "clear":
-            {
-                bool isSet = input[0].ToLower() == "set";
+        // var server = new TcpServer(5000);
 
-                if (input.Count < 2)
-                {
-                    Console.WriteLine($"Usage: {input[0].ToLower()} <pin>[,<pin>...]");
-                    break;
-                }
+        Console.WriteLine("Starting device...");
+        Console.WriteLine("\nDeviceManager Interactive Console");
+        Console.WriteLine("==================================");
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  [1] Start poll");
+        Console.WriteLine("  [2] Stop poll");
+        Console.WriteLine("  [3] Return bill");
+        Console.WriteLine("  [4] Stack bill extension");
+        Console.WriteLine("  [5] Exit");
+        Console.WriteLine("  [7] Animate Colors");
+        Console.WriteLine("  [8] Dispose Led controller");
+        Console.WriteLine("  [9] Print Demo Ticket");
 
-                string cleanPinText = string.Empty;
+        Console.WriteLine();
+        // var deviceManager = new DeviceManager((port) => new MEIDeviceAdapter(port));
+        var deviceManager = new DeviceManager((port) => new JCMDeviceAdapter(port));
+        var deviceThread = new Thread(() =>
+               {
+                   deviceManager.Initalize();
 
-                foreach (string pin in input.Skip(1))
-                {
-                    cleanPinText += pin.Trim();
-                }
+               });
 
-                List<int> pins = [];
-
-                try
-                {
-                    pins = cleanPinText.Split(',').Select(x => int.Parse(x)).ToList();
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Invalid pin number");
-                    break;
-                }
+        deviceThread.Start();
 
 
-                if (pins.Count == 0)
-                {
-                    Console.WriteLine("Invalid pin number");
-                    break;
-                }
 
-                if (pins.Count == 1)
-                {
-                    Console.Write($"{(isSet ? "SetOutputPin" : "ClearOutputPin")}({pins[0]})...");
-                    if (isSet)
-                        core.GPIO.SetOutputPin(pins[0]);
-                    else
-                        core.GPIO.ClearOutputPin(pins[0]);
-                    Console.WriteLine("done");
-                }
-                else
-                {
-                    ulong mask = 0;
-                    ulong value = isSet ? 0xFFFFFFFFFFFFFFFFUL : 0x0UL;
+        var nfcReader = new NFCReader();
+        var nfcThread = new Thread(() =>
+        {
+            nfcReader.Init();
+        });
 
-                    foreach (int pin in pins)
-                    {
-                        mask |= (0x1UL << pin);
-                    }
+        nfcThread.Start();
 
-                    Console.Write($"DigitalOutput(0x{mask:X16}, 0x{value:X16})...");
-                    core.GPIO.DigitalOutput(value, mask);
-                    Console.WriteLine("done");
-                }
-            }
-            break;
-        case "blink":
-            {
-                if (input.Count != 2)
-                {
-                    Console.WriteLine("Usage: blink <pin>");
-                    break;
-                }
 
-                int pin = -1;
+        var ledController = new LEDController();
 
-                try
-                {
-                    pin = int.Parse(input[1]);
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Invalid pin number");
-                    break;
-                }
+        var ledThread = new Thread(() =>
+        {
+            ledController.Init();
+            ledController.ApplyPattern(0, new SolidColorPattern(Color.Blue));
+            ledController.ApplyPattern(1, new HearthbeatPattern(Color.Red));
+            ledController.ApplyPattern(2, new LoopFadePattern());
+            ledController.ApplyPattern(3, new RainbowPattern());
+        });
 
-                if (pin < 0)
-                {
-                    Console.WriteLine("Invalid pin number");
-                    break;
-                }
+        ledThread.Start();
+        IPrinter printerService = new JCMPrinterImpl();
 
-                Console.Write($"PlayPattern({pin}, 4, 0x000000000000000C)...");
-                core.GPIO.PlayPattern(pin, 4, 0xCUL);
-                Console.Write("done\nPress ENTER to stop blinking...");
-                Console.ReadLine();
-                Console.Write($"StopPattern({pin})...");
-                core.GPIO.StopPattern(pin);
-                Console.WriteLine("done");
-            }
-            break;
-        default:
-            Console.WriteLine($"Unknown command: {input[0].ToLower()}");
-            break;
+        var printerThread = new Thread(() =>
+              {
+                  printerService.Init();
+                  printerService.PrintDemoTicket();
+              });
+
+        printerThread.Start();
+
+        var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader));
+        inputThread.Start();
+        Console.WriteLine("✅ Server started. Waiting for Unity client...");
+
+        // Wait for Unity connection
+        // await server.WaitForClientAsync();
+
+        Console.WriteLine("🎮 Unity client connected!");
 
     }
+
+    private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader)
+    {
+        while (!exitRequested)
+        {
+            Console.Write("Main InputLoop() Enter command number: ");
+            var input = Console.ReadLine()?.Trim();
+
+            if (string.IsNullOrEmpty(input))
+                continue;
+
+            switch (input)
+            {
+                case "1":
+                    manager.StartPolling();
+                    break;
+
+                case "2":
+                    manager.StopPolling();
+                    break;
+
+                case "3":
+                    manager.ReturnBill();
+                    break;
+
+                case "4":
+                    manager.StackBill();
+                    break;
+                case "5":
+                    Console.WriteLine("Exiting...");
+                    exitRequested = true;
+                    manager.StopPolling();
+                    nFCReader.StopPolling();
+                    return;
+                case "7":
+                    ledController.ApplyPatterns();
+                    break;
+                case "8":
+                    ledController.DisposeController();
+                    break;
+                case "9":
+                    printerService.PrintDemoTicket();
+                    break;
+                default:
+                    Console.WriteLine("Invalid command.");
+                    break;
+            }
+        }
+    }
 }
-
-
-return 0;
