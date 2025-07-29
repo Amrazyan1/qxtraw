@@ -4,15 +4,17 @@ using System.Text;
 using System.Threading.Tasks;
 using System; // For EventHandler
 
-public class TcpServer : IDisposable // Implement IDisposable for proper cleanup
+public class TcpServer : IDisposable
 {
     private readonly TcpListener _listener;
     private StreamWriter? _writer;
-    private StreamReader? _reader; // New: For reading incoming messages
-    private TcpClient? _client; // New: Store the client reference
+    private StreamReader? _reader;
+    private TcpClient? _client;
 
-    // Event to notify when a message is received
     public event EventHandler<string>? OnMessageReceived;
+    public event EventHandler? OnClientDisconnected; // 🔹 Added event
+
+    private CancellationTokenSource _cts = new();
 
     public TcpServer(int port)
     {
@@ -21,26 +23,29 @@ public class TcpServer : IDisposable // Implement IDisposable for proper cleanup
         Console.WriteLine($"Server listening on port {port}...");
     }
 
-    public async Task WaitForClientAsync()
+    public async Task StartAsync()
     {
-        Console.WriteLine("Waiting for Unity client...");
-        _client = await _listener.AcceptTcpClientAsync();
-        Console.WriteLine("Unity client connected!");
+        while (!_cts.Token.IsCancellationRequested)
+        {
+            Console.WriteLine("Waiting for Unity client...");
+            _client = await _listener.AcceptTcpClientAsync();
+            Console.WriteLine("🎮 Unity client connected!");
 
-        var stream = _client.GetStream();
-        _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
-        _reader = new StreamReader(stream, Encoding.UTF8); // Initialize reader
+            var stream = _client.GetStream();
+            _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+            _reader = new StreamReader(stream, Encoding.UTF8);
 
-        // Start listening for incoming messages in the background
-        _ = Task.Run(ListenForIncomingMessages);
+            _ = Task.Run(ListenForIncomingMessages);
+            await MonitorConnectionAsync();
+        }
     }
 
     public async Task SendMessageAsync(string message)
     {
         if (_writer == null || _client == null || !_client.Connected)
         {
-            Console.WriteLine("Warning: No client connected to send message.");
-            return; // Or throw an exception
+            Console.WriteLine("⚠ No client connected to send message.");
+            return;
         }
 
         try
@@ -50,52 +55,62 @@ public class TcpServer : IDisposable // Implement IDisposable for proper cleanup
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending message to Unity: {ex.Message}");
-            // Handle disconnection here if necessary
+            Console.WriteLine($"❌ Error sending message: {ex.Message}");
         }
     }
 
     private async Task ListenForIncomingMessages()
     {
-        if (_reader == null || _client == null) return;
-
         try
         {
-            while (_client.Connected)
+            while (_client?.Connected == true)
             {
-                string? message = await _reader.ReadLineAsync(); // Reads until newline
-                if (message == null) // Client disconnected
-                {
-                    Console.WriteLine("Client disconnected.");
-                    // You might want to raise a disconnection event here
-                    break;
-                }
+                string? message = await _reader?.ReadLineAsync();
+                if (message == null) break; // Unity disconnected
                 Console.WriteLine($"📧 Received from Client: {message}");
-                OnMessageReceived?.Invoke(this, message); // Raise the event
+                OnMessageReceived?.Invoke(this, message);
             }
-        }
-        catch (IOException ioEx) when (ioEx.InnerException is SocketException sex && sex.SocketErrorCode == SocketError.ConnectionReset)
-        {
-            Console.WriteLine("Client forcibly disconnected.");
-        }
-        catch (ObjectDisposedException)
-        {
-            // Stream or client was disposed, graceful shutdown
-            Console.WriteLine("TCP server listener or stream disposed during read.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error listening for client messages: {ex.Message}");
+            Console.WriteLine($"Error reading from client: {ex.Message}");
+        }
+        finally
+        {
+            HandleDisconnection();
         }
     }
 
-    // Implement IDisposable for proper resource cleanup
+    private async Task MonitorConnectionAsync()
+    {
+        while (_client?.Connected == true)
+        {
+            await Task.Delay(1000); // Check every second
+        }
+        HandleDisconnection();
+    }
+
+    private void HandleDisconnection()
+    {
+        Console.WriteLine("⚠ Unity client disconnected. Waiting for reconnection...");
+        OnClientDisconnected?.Invoke(this, EventArgs.Empty);
+
+        _client?.Close();
+        _writer?.Dispose();
+        _reader?.Dispose();
+        _client = null;
+        _writer = null;
+        _reader = null;
+    }
+
     public void Dispose()
     {
         Console.WriteLine("Disposing TcpServer...");
-        _client?.Close(); // Close the client connection
-        _listener?.Stop(); // Stop listening for new connections
+        _cts.Cancel();
+        _client?.Close();
+        _listener.Stop();
         _writer?.Dispose();
         _reader?.Dispose();
-        Console.WriteLine("TcpServer disposed.");}
+        Console.WriteLine("TcpServer disposed.");
+    }
 }

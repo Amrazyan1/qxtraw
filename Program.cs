@@ -35,7 +35,7 @@ class Program
 
     static async Task Main(string[] args)
     {
-         var server = new TcpServer(5000);
+        var server = new TcpServer(5000);
 
         Console.WriteLine("Starting device...");
         Console.WriteLine("\nDeviceManager Interactive Console");
@@ -71,7 +71,7 @@ class Program
 
         nfcThread.Start();
 
-    
+
 
         server.OnMessageReceived += HandleUnityCommand;
 
@@ -98,14 +98,18 @@ class Program
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
 
-        // Wait for Unity connection
-        await server.WaitForClientAsync();
+        _ = server.StartAsync(); // 🔥 Auto-handles reconnect internally
+
+        server.OnClientDisconnected += (_, __) =>
+        {
+            Console.WriteLine("🔄 Unity disconnected. Will wait for reconnection...");
+        };
 
         Console.WriteLine("🎮 Unity client connected!");
 
     }
 
-       private static void HandleUnityCommand(object? sender, string command)
+    private static void HandleUnityCommand(object? sender, string command)
     {
         Console.WriteLine($"[COMMAND FROM Client] Processing: {command}");
         string[] parts = command.Split(':');
@@ -130,7 +134,7 @@ class Program
                 {
                     Console.WriteLine($"Turning LED channel {offChannel} OFF");
                     _ledController.StopLoop(offChannel);
-            
+
                 }
                 else
                 {
