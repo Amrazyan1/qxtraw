@@ -1,40 +1,13 @@
-﻿// using Quixant.LibRAV;
-
-// var server = new TcpServer(5000);
-// var deviceManager = new DeviceManager();
-
-// // Start devices
-// deviceManager.StartAllDevices();
-
-// Console.WriteLine("✅ Server started. Waiting for Unity client...");
-
-// // Accept Unity connection
-// await server.WaitForClientAsync();
-
-// Console.WriteLine("🎮 Unity client connected!");
-
-// while (true)
-// {
-//     Console.Write("Enter message: ");
-//     var input = Console.ReadLine();
-
-//     if (string.IsNullOrWhiteSpace(input))
-//         continue;
-
-//     await server.SendMessageAsync(input);
-// }
-using System.Drawing;
+﻿using System.Drawing;
 using Quixant.LibRAV;
 
 class Program
 {
-
-    
     private static bool exitRequested = false;
 
     static void Main(string[] args)
     {
-         var server = new TcpServer(5000);
+        var server = new TcpServer(5000);
 
         Console.WriteLine("Starting device...");
         Console.WriteLine("\nDeviceManager Interactive Console");
@@ -59,8 +32,6 @@ class Program
                });
 
         deviceThread.Start();
-
-
 
         var nfcReader = new NFCReader();
         var nfcThread = new Thread(() =>
@@ -101,8 +72,9 @@ class Program
               });
 
         printerThread.Start();
+        var meter = new MetterStepper();
 
-        var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader));
+        var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader, meter));
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
 
@@ -113,7 +85,7 @@ class Program
 
     }
 
-       private static void HandleUnityCommand(object? sender, string command)
+    private static void HandleUnityCommand(object? sender, string command)
     {
         Console.WriteLine($"[COMMAND FROM Client] Processing: {command}");
         string[] parts = command.Split(':');
@@ -123,11 +95,11 @@ class Program
         {
             // ... (existing LED_ON, LED_OFF, LED_PATTERN, BILL_RETURN commands) ...
 
-    
+
         }
     }
 
-    private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader)
+    private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader, MetterStepper metterStepper)
     {
         while (!exitRequested)
         {
@@ -168,6 +140,9 @@ class Program
                     break;
                 case "9":
                     printerService.PrintDemoTicket();
+                    break;
+                case "10":
+                    metterStepper.TickMeter(0);
                     break;
                 default:
                     Console.WriteLine("Invalid command.");
