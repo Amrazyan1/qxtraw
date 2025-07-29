@@ -29,7 +29,7 @@ using Quixant.LibRAV;
 class Program
 {
 
-
+    private static LEDController _ledController;
     private static bool exitRequested = false;
 
     static async Task Main(string[] args)
@@ -75,15 +75,11 @@ class Program
         server.OnMessageReceived += HandleUnityCommand;
 
 
-        var ledController = new LEDController();
+        _ledController = new LEDController();
 
         var ledThread = new Thread(() =>
         {
-            ledController.Init();
-            // ledController.ApplyPattern(0, new SolidColorPattern(Color.Blue));
-            // ledController.ApplyPattern(1, new HearthbeatPattern(Color.Red));
-            // ledController.ApplyPattern(2, new LoopFadePattern());
-            // ledController.ApplyPattern(3, new RainbowPattern());
+            _ledController.Init();
         });
 
         ledThread.Start();
@@ -97,7 +93,7 @@ class Program
 
         printerThread.Start();
 
-        var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader));
+        var inputThread = new Thread(() => InputLoop(deviceManager, _ledController, printerService, nfcReader));
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
 
@@ -116,9 +112,99 @@ class Program
 
         switch (commandType)
         {
-            // ... (existing LED_ON, LED_OFF, LED_PATTERN, BILL_RETURN commands) ...
+            case "LED_ON":
+                if (parts.Length == 2 && int.TryParse(parts[1], out int onChannel))
+                {
+                    Console.WriteLine($"Turning LED channel {onChannel} ON");
+                    _ledController.ApplyPattern(onChannel, new SolidColorPattern(Color.White)); // Or any default "on" color
+                }
+                else
+                {
+                    Console.WriteLine("Invalid LED_ON command format. Expected: LED_ON:<channel>");
+                }
+                break;
 
-    
+            case "LED_OFF":
+                if (parts.Length == 2 && int.TryParse(parts[1], out int offChannel))
+                {
+                    Console.WriteLine($"Turning LED channel {offChannel} OFF");
+                    _ledController.StopLoop(offChannel);
+            
+                }
+                else
+                {
+                    Console.WriteLine("Invalid LED_OFF command format. Expected: LED_OFF:<channel>");
+                }
+                break;
+
+            case "LED_COLOR":
+                if (parts.Length == 5 && int.TryParse(parts[1], out int colorChannel) &&
+                    byte.TryParse(parts[2], out byte r) && byte.TryParse(parts[3], out byte g) &&
+                    byte.TryParse(parts[4], out byte b))
+                {
+                    Console.WriteLine($"Setting LED channel {colorChannel} to Color({r},{g},{b})");
+                    _ledController.ApplyPattern(colorChannel, new SolidColorPattern(Color.FromArgb(r, g, b)));
+                }
+                else
+                {
+                    Console.WriteLine("Invalid LED_COLOR command format. Expected: LED_COLOR:<channel>:<R>:<G>:<B>");
+                }
+                break;
+
+            case "LED_PATTERN":
+                if (parts.Length >= 3 && int.TryParse(parts[1], out int patternChannel))
+                {
+                    string patternName = parts[2].ToUpper();
+                    Console.WriteLine($"Applying pattern {patternName} to channel {patternChannel}");
+
+                    switch (patternName)
+                    {
+                        case "HEARTBEAT":
+                            if (parts.Length == 6 &&
+                                byte.TryParse(parts[3], out byte hr) && byte.TryParse(parts[4], out byte hg) &&
+                                byte.TryParse(parts[5], out byte hb))
+                            {
+                                _ledController.ApplyPattern(patternChannel, new HearthbeatPattern(Color.FromArgb(hr, hg, hb)));
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid HEARTBEAT pattern format. Expected: LED_PATTERN:<channel>:HEARTBEAT:<R>:<G>:<B>");
+                            }
+                            break;
+                        case "LOOPFADE":
+                            _ledController.ApplyPattern(patternChannel, new LoopFadePattern());
+                            break;
+                        case "RAINBOW":
+                            _ledController.ApplyPattern(patternChannel, new RainbowPattern());
+                            break;
+                        // Add more cases for other patterns you define
+                        default:
+                            Console.WriteLine($"Unknown LED pattern: {patternName}");
+                            break;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid LED_PATTERN command format. Expected: LED_PATTERN:<channel>:<pattern_name>:[params...]");
+                }
+                break;
+
+            case "LED_STOP_CHANNEL":
+                if (parts.Length == 2 && int.TryParse(parts[1], out int stopChannel))
+                {
+                    Console.WriteLine($"Stopping LED effects on channel {stopChannel}");
+                    _ledController.StopLoop(stopChannel);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid LED_STOP_CHANNEL command format. Expected: LED_STOP_CHANNEL:<channel>");
+                }
+                break;
+
+            case "LED_STOP_ALL":
+                Console.WriteLine("Stopping all LED effects.");
+                _ledController.StopAllLoops();
+                break;
         }
     }
 
