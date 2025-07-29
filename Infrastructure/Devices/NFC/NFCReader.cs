@@ -46,7 +46,7 @@ class NFCReader
      Console.WriteLine($"[NFC] Card Inserted: {args.ReaderName}");
      string atrString = BitConverter.ToString(args.Atr ?? new byte[0]);
      Console.WriteLine($"[NFC] ATR: {atrString}");
-     await _server.SendMessageAsync($"NFC:{atrString}"); // This sends the ATR
+     await _server.SendMessageAsync(ProtocolType.NFC + $"{atrString}"); // This sends the ATR
      Thread.Sleep(1000);
  };
 

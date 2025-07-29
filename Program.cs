@@ -4,7 +4,6 @@ using qxtraw.Infrastructure.Devices.LED.Presentation;
 
 class Program
 {
-
     private static LEDController _ledController;
     private static bool exitRequested = false;
 
@@ -272,4 +271,16 @@ class Program
             }
         }
     }
+
+
 }
+
+  public enum ProtocolType
+    {
+        NFC = 0,
+        BILL = 1,
+        PRINTER = 2,
+        COUNTER = 3,
+        LED = 4,
+        ALARM = 5,
+    }
