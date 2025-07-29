@@ -1,12 +1,12 @@
 using System;
 using Quixant.Core; // Assuming GPIOManager is here
 
-public class ManualPatternStepper
+public class MetterStepper
 {
     private readonly GPIOManager _gpio;
     const int DELAY_MS = 125;
 
-    public ManualPatternStepper()
+    public MetterStepper()
     {
         CoreManager core = CoreManager.GetDefault();
         _gpio = core.GPIO;
