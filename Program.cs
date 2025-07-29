@@ -177,6 +177,9 @@ class Program
                         case "RAINBOW":
                             _ledController.ApplyPattern(patternChannel, new RainbowPattern());
                             break;
+                        case "RAINBOWCHAIN":
+                            _ledController.ApplyPattern(patternChannel, new RainbowChainPattern());
+                            break;
                         // Add more cases for other patterns you define
                         default:
                             Console.WriteLine($"Unknown LED pattern: {patternName}");
