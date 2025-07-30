@@ -227,11 +227,6 @@ class Program
                                 byte.TryParse(parts[4], out byte jr) && byte.TryParse(parts[5], out byte jg) &&
                                 byte.TryParse(parts[6], out byte jb))
                             {
-                                // If you want to use speed:
-                                // float speed = 0.05f; // Default
-                                // if (parts.Length == 8 && float.TryParse(parts[7], out float parsedSpeed)) {
-                                //     speed = parsedSpeed;
-                                // }
                                 _ledController.ApplyPattern((int)channel, new JackpotPulsePattern(Color.FromArgb(jr, jg, jb))); // Pass speed if constructor updated
                             }
                             else
@@ -246,11 +241,6 @@ class Program
                                 byte.TryParse(parts[4], out byte chr) && byte.TryParse(parts[5], out byte chg) &&
                                 byte.TryParse(parts[6], out byte chb))
                             {
-                                // If you want to use speed:
-                                // float speed = 0.05f; // Default
-                                // if (parts.Length == 8 && float.TryParse(parts[7], out float parsedSpeed)) {
-                                //     speed = parsedSpeed;
-                                // }
                                 _ledController.ApplyPattern((int)channel, new ChasePattern(Color.FromArgb(chr, chg, chb))); // Pass speed if constructor updated
                             }
                             else

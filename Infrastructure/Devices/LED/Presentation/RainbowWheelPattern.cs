@@ -48,11 +48,5 @@ namespace qxtraw.Infrastructure.Devices.LED.Presentation
         }
     }
 
-    // Assuming QxLedController and ILedPattern are defined elsewhere in your project
-    // For demonstration, here are simple placeholder interfaces/classes:
-    public interface ILedPattern
-    {
-        Task StartAsync(int channel, QxLedController controller, CancellationTokenSource cts);
-    }
 
 }
