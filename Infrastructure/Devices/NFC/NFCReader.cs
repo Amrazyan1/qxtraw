@@ -108,9 +108,9 @@ class NFCReader
 
     private void DisplayEvent(string eventName, CardStatusEventArgs unknown)
     {
-        Console.WriteLine("NFCReader DisplayEvent()>> {0} Event for reader: {1}", eventName, unknown.ReaderName);
-        Console.WriteLine("NFCReader DisplayEvent() ATR: {0}", BitConverter.ToString(unknown.Atr ?? new byte[0]));
-        Console.WriteLine("NFCReader DisplayEvent() State: {0}\n", unknown.State);
+        // Console.WriteLine("NFCReader DisplayEvent()>> {0} Event for reader: {1}", eventName, unknown.ReaderName);
+        // Console.WriteLine("NFCReader DisplayEvent() ATR: {0}", BitConverter.ToString(unknown.Atr ?? new byte[0]));
+        // Console.WriteLine("NFCReader DisplayEvent() State: {0}\n", unknown.State);
     }
 
     private void StatusChanged(object sender, StatusChangeEventArgs args)

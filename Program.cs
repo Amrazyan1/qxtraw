@@ -84,139 +84,204 @@ class Program
 
     }
 
-    private static void HandleUnityCommand(object? sender, string command)
+      private static void HandleUnityCommand(object? sender, string command)
     {
         Console.WriteLine($"[COMMAND FROM Client] Processing: {command}");
         string[] parts = command.Split(':');
-        string commandType = parts[0].ToUpper();
+
+        if (parts.Length < 2)
+        {
+            Console.WriteLine($"Invalid command format: {command}");
+            return;
+        }
+
+        // Try to parse the main command type
+        if (!Enum.TryParse(parts[0], true, out HardwareCommandType commandType)) // `true` for ignoreCase
+        {
+            Console.WriteLine($"Unknown command type: {parts[0]}");
+            return;
+        }
 
         switch (commandType)
         {
-            case "LED_ON":
-                if (parts.Length == 2 && int.TryParse(parts[1], out int onChannel))
+            case HardwareCommandType.LED:
+                HandleLEDCommand(parts);
+                break;
+            // Add cases for other HardwareCommandType enums as you implement them
+            // case HardwareCommandType.NFC:
+            //     HandleNFCCommand(parts);
+            //     break;
+            default:
+                Console.WriteLine($"Command type {commandType} not yet implemented or invalid.");
+                break;
+        }
+    }
+
+    private static void HandleLEDCommand(string[] parts)
+    {
+        if (parts.Length < 3) // e.g., "LED:ON:1" needs at least 3 parts
+        {
+            Console.WriteLine($"Invalid LED command format: {string.Join(":", parts)}");
+            return;
+        }
+
+        if (!Enum.TryParse(parts[1], true, out LED.Enums.LEDAction ledAction)) // `true` for ignoreCase
+        {
+            Console.WriteLine($"Unknown LED action: {parts[1]}");
+            return;
+        }
+
+        // Try to parse the channel (most LED commands require a channel)
+        // Default to AllChannels if parsing fails or not provided (e.g., for StopAll)
+        LED.Enums.LEDChannel channel = LED.Enums.LEDChannel.AllChannels; // Default value
+        if (parts.Length > 2 && int.TryParse(parts[2], out int channelInt))
+        {
+            if (Enum.IsDefined(typeof(LED.Enums.LEDChannel), channelInt))
+            {
+                channel = (LED.Enums.LEDChannel)channelInt;
+            }
+            else
+            {
+                Console.WriteLine($"Invalid LED channel: {channelInt}");
+                return;
+            }
+        }
+
+
+        switch (ledAction)
+        {
+            case LED.Enums.LEDAction.On:
+                Console.WriteLine($"Turning LED channel {channel} ON");
+                _ledController.ApplyPattern((int)channel, new SolidColorPattern(Color.White));
+                break;
+
+            case LED.Enums.LEDAction.Off:
+                Console.WriteLine($"Turning LED channel {channel} OFF");
+                _ledController.StopLoop((int)channel);
+                break;
+
+            case LED.Enums.LEDAction.SetColor:
+                if (parts.Length == 6 &&
+                    byte.TryParse(parts[3], out byte r) && byte.TryParse(parts[4], out byte g) &&
+                    byte.TryParse(parts[5], out byte b))
                 {
-                    Console.WriteLine($"Turning LED channel {onChannel} ON");
-                    _ledController.ApplyPattern(onChannel, new SolidColorPattern(Color.White)); // Or any default "on" color
+                    Console.WriteLine($"Setting LED channel {channel} to Color({r},{g},{b})");
+                    _ledController.ApplyPattern((int)channel, new SolidColorPattern(Color.FromArgb(r, g, b)));
                 }
                 else
                 {
-                    Console.WriteLine("Invalid LED_ON command format. Expected: LED_ON:<channel>");
+                    Console.WriteLine("Invalid LED:SetColor command format. Expected: LED:SetColor:<channel>:<R>:<G>:<B>");
                 }
                 break;
 
-
-            case "LED_OFF":
-                if (parts.Length == 2 && int.TryParse(parts[1], out int offChannel))
+            case LED.Enums.LEDAction.ApplyPattern:
+                if (parts.Length >= 4) // e.g., "LED:ApplyPattern:1:HEARTBEAT"
                 {
-                    Console.WriteLine($"Turning LED channel {offChannel} OFF");
-                    _ledController.StopLoop(offChannel);
-
-                }
-                else
-                {
-                    Console.WriteLine("Invalid LED_OFF command format. Expected: LED_OFF:<channel>");
-                }
-                break;
-
-            case "LED_COLOR":
-                if (parts.Length == 5 && int.TryParse(parts[1], out int colorChannel) &&
-                    byte.TryParse(parts[2], out byte r) && byte.TryParse(parts[3], out byte g) &&
-                    byte.TryParse(parts[4], out byte b))
-                {
-                    Console.WriteLine($"Setting LED channel {colorChannel} to Color({r},{g},{b})");
-                    _ledController.ApplyPattern(colorChannel, new SolidColorPattern(Color.FromArgb(r, g, b)));
-                }
-                else
-                {
-                    Console.WriteLine("Invalid LED_COLOR command format. Expected: LED_COLOR:<channel>:<R>:<G>:<B>");
-                }
-                break;
-
-            case "LED_PATTERN":
-                if (parts.Length >= 3 && int.TryParse(parts[1], out int patternChannel))
-                {
-                    string patternName = parts[2].ToUpper();
-                    Console.WriteLine($"Applying pattern {patternName} to channel {patternChannel}");
-
-                    switch (patternName)
+                    if (!Enum.TryParse(parts[3], true, out LED.Enums.LEDPatternType patternType))
                     {
-                        case "HEARTBEAT":
-                            if (parts.Length == 6 &&
-                                byte.TryParse(parts[3], out byte hr) && byte.TryParse(parts[4], out byte hg) &&
-                                byte.TryParse(parts[5], out byte hb))
+                        Console.WriteLine($"Unknown LED pattern type: {parts[3]}");
+                        return;
+                    }
+
+                    Console.WriteLine($"Applying pattern {patternType} to channel {channel}");
+
+                    switch (patternType)
+                    {
+                        case LED.Enums.LEDPatternType.Heartbeat:
+                            if (parts.Length == 7 &&
+                                byte.TryParse(parts[4], out byte hr) && byte.TryParse(parts[5], out byte hg) &&
+                                byte.TryParse(parts[6], out byte hb))
                             {
-                                _ledController.ApplyPattern(patternChannel, new HearthbeatPattern(Color.FromArgb(hr, hg, hb)));
+                                _ledController.ApplyPattern((int)channel, new HearthbeatPattern(Color.FromArgb(hr, hg, hb)));
                             }
                             else
                             {
-                                Console.WriteLine("Invalid HEARTBEAT pattern format. Expected: LED_PATTERN:<channel>:HEARTBEAT:<R>:<G>:<B>");
+                                Console.WriteLine("Invalid HEARTBEAT pattern format. Expected: LED:ApplyPattern:<channel>:HEARTBEAT:<R>:<G>:<B>");
                             }
                             break;
-                        case "LOOP_FADE":
-                            _ledController.ApplyPattern(patternChannel, new LoopFadePattern());
+                        case LED.Enums.LEDPatternType.LoopFade:
+                            _ledController.ApplyPattern((int)channel, new LoopFadePattern());
                             break;
-                        case "RAINBOW":
-                            _ledController.ApplyPattern(patternChannel, new RainbowPattern());
+                        case LED.Enums.LEDPatternType.Rainbow:
+                            _ledController.ApplyPattern((int)channel, new RainbowPattern());
                             break;
-                        case "RAINDOW_WHEEL":
-                            _ledController.ApplyPattern(patternChannel, new RainbowWheelPattern());
+                        case LED.Enums.LEDPatternType.RainbowWheel:
+                            _ledController.ApplyPattern((int)channel, new RainbowWheelPattern());
                             break;
-                        case "BIG_WIN":
-                            if (parts.Length == 6 &&
-                                    byte.TryParse(parts[3], out byte br) && byte.TryParse(parts[4], out byte bg) &&
-                                    byte.TryParse(parts[5], out byte bb))
+                        case LED.Enums.LEDPatternType.BigWin:
+                            if (parts.Length == 7 &&
+                                byte.TryParse(parts[4], out byte br) && byte.TryParse(parts[5], out byte bg) &&
+                                byte.TryParse(parts[6], out byte bb))
                             {
-
-                                _ledController.ApplyPattern(patternChannel, new BigWinBlinkPattern(Color.FromArgb(br, bg, bb)));
+                                _ledController.ApplyPattern((int)channel, new BigWinBlinkPattern(Color.FromArgb(br, bg, bb)));
                             }
-                            break;
-                        case "JACKPOT":
-                            if (parts.Length == 6 &&
-                                    byte.TryParse(parts[3], out byte jr) && byte.TryParse(parts[4], out byte jg) &&
-                                    byte.TryParse(parts[5], out byte jb))
+                            else
                             {
-
-                                _ledController.ApplyPattern(patternChannel, new JackpotPulsePattern(Color.FromArgb(jr, jg, jb)));
+                                Console.WriteLine("Invalid BIG_WIN pattern format. Expected: LED:ApplyPattern:<channel>:BIG_WIN:<R>:<G>:<B>");
                             }
                             break;
-                        case "CHASE":
-                            if (parts.Length == 6 &&
-                                    byte.TryParse(parts[3], out byte chr) && byte.TryParse(parts[4], out byte chg) &&
-                                    byte.TryParse(parts[5], out byte chb))
+                        case LED.Enums.LEDPatternType.Jackpot:
+                            // Note: Assuming JackpotPulsePattern in server takes color, not speed directly in constructor currently.
+                            // If you add speed, parse parts[7] and pass it.
+                            if (parts.Length >= 7 && // Check length for color, possibly +1 for speed
+                                byte.TryParse(parts[4], out byte jr) && byte.TryParse(parts[5], out byte jg) &&
+                                byte.TryParse(parts[6], out byte jb))
                             {
-
-                                _ledController.ApplyPattern(patternChannel, new ChasePattern(Color.FromArgb(chr, chg, chb)));
+                                // If you want to use speed:
+                                // float speed = 0.05f; // Default
+                                // if (parts.Length == 8 && float.TryParse(parts[7], out float parsedSpeed)) {
+                                //     speed = parsedSpeed;
+                                // }
+                                _ledController.ApplyPattern((int)channel, new JackpotPulsePattern(Color.FromArgb(jr, jg, jb))); // Pass speed if constructor updated
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid JACKPOT pattern format. Expected: LED:ApplyPattern:<channel>:JACKPOT:<R>:<G>:<B>[:<Speed>]");
                             }
                             break;
-                        // Add more cases for other patterns you define
+                        case LED.Enums.LEDPatternType.Chase:
+                            // Note: Assuming ChasePattern in server takes color, not speed directly in constructor currently.
+                            // If you add speed, parse parts[7] and pass it.
+                            if (parts.Length >= 7 && // Check length for color, possibly +1 for speed
+                                byte.TryParse(parts[4], out byte chr) && byte.TryParse(parts[5], out byte chg) &&
+                                byte.TryParse(parts[6], out byte chb))
+                            {
+                                // If you want to use speed:
+                                // float speed = 0.05f; // Default
+                                // if (parts.Length == 8 && float.TryParse(parts[7], out float parsedSpeed)) {
+                                //     speed = parsedSpeed;
+                                // }
+                                _ledController.ApplyPattern((int)channel, new ChasePattern(Color.FromArgb(chr, chg, chb))); // Pass speed if constructor updated
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid CHASE pattern format. Expected: LED:ApplyPattern:<channel>:CHASE:<R>:<G>:<B>[:<Speed>]");
+                            }
+                            break;
                         default:
-                            Console.WriteLine($"Unknown LED pattern: {patternName}");
+                            Console.WriteLine($"Unknown LED pattern: {patternType}");
                             break;
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Invalid LED_PATTERN command format. Expected: LED_PATTERN:<channel>:<pattern_name>:[params...]");
+                    Console.WriteLine("Invalid LED:ApplyPattern command format. Expected: LED:ApplyPattern:<channel>:<pattern_name>:[params...]");
                 }
                 break;
 
-            case "LED_STOP_CHANNEL":
-                if (parts.Length == 2 && int.TryParse(parts[1], out int stopChannel))
-                {
-                    Console.WriteLine($"Stopping LED effects on channel {stopChannel}");
-                    _ledController.StopLoop(stopChannel);
-                }
-                else
-                {
-                    Console.WriteLine("Invalid LED_STOP_CHANNEL command format. Expected: LED_STOP_CHANNEL:<channel>");
-                }
+            case LED.Enums.LEDAction.StopChannel:
+                Console.WriteLine($"Stopping LED effects on channel {channel}");
+                _ledController.StopLoop((int)channel);
                 break;
 
-            case "LED_STOP_ALL":
+            case LED.Enums.LEDAction.StopAll:
                 Console.WriteLine("Stopping all LED effects.");
                 _ledController.StopAllLoops();
                 break;
 
+            default:
+                Console.WriteLine($"Unknown LED action: {ledAction}");
+                break;
         }
     }
 
@@ -275,12 +340,16 @@ class Program
 
 }
 
-  public enum ProtocolType
+    /// <summary>
+    /// Defines the general types of hardware commands.
+    /// This helps categorize the incoming TCP messages.
+    /// </summary>
+    public enum HardwareCommandType
     {
-        NFC = 0,
-        BILL = 1,
-        PRINTER = 2,
-        COUNTER = 3,
-        LED = 4,
-        ALARM = 5,
+        LED,
+        NFC,
+        BillAcceptor,
+        Printer,
+        Counter,
+        Alarm,
     }
