@@ -9,11 +9,11 @@ namespace LED.Enums // Replace with your actual service namespace
     /// </summary>
     public enum LEDChannel
     {
-        AllChannels = 0,
+        AllChannels = -1,
+        Channel0 = 0,
         Channel1 = 1,
         Channel2 = 2,
         Channel3 = 3,
-        Channel4 = 4,
         // Ensure these match Unity
     }
 
@@ -47,14 +47,4 @@ namespace LED.Enums // Replace with your actual service namespace
         StopAll,
     }
 
-    // Your existing ProtocolType can remain or be replaced by HardwareCommandType
-    public enum ProtocolType
-    {
-        NFC = 0,
-        BILL = 1, // Consider renaming to BillAcceptor for consistency
-        PRINTER = 2,
-        COUNTER = 3,
-        LED = 4,
-        ALARM = 5,
-    }
 }

@@ -14,14 +14,32 @@ public class LEDController : IDisposable
 
     public void ApplyPattern(int ch, ILedPattern pattern)
     {
-        StopLoop(ch);
-
-        if (_controller != null)
+        if (ch == -1)
         {
-            var cts = new CancellationTokenSource();
-            _channelLoops[ch] = cts;
-            _ = pattern.StartAsync(ch, _controller, cts);
+            for (int i = 0; i < QxLedController.CHANNEL_COUNT; i++)
+            {
+                StopLoop(i);
+
+                if (_controller != null)
+                {
+                    var cts = new CancellationTokenSource();
+                    _channelLoops[i] = cts;
+                    _ = pattern.StartAsync(i, _controller, cts);
+                }
+            }
         }
+        else
+        {
+            StopLoop(ch);
+
+            if (_controller != null)
+            {
+                var cts = new CancellationTokenSource();
+                _channelLoops[ch] = cts;
+                _ = pattern.StartAsync(ch, _controller, cts);
+            }
+        }
+
     }
 
     public void DisposeController()
