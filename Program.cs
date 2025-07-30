@@ -75,6 +75,12 @@ class Program
         var meter = new MetterStepper();
         var doorStatusHandler = new DoorStatusHandler();
         doorStatusHandler.Poll();
+        doorStatusHandler.OnDoorStatusChangedEvent += async (door, state) =>
+        {
+            Console.WriteLine($"[DOOR] Door {door} changed to {state}");
+            await server.SendMessageAsync($"DOOR:{door}:{state}");
+        };
+
         var inputThread = new Thread(() => InputLoop(deviceManager, ledController, printerService, nfcReader, meter));
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
