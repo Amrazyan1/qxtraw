@@ -74,7 +74,7 @@ class Program
         printerThread.Start();
         var meter = new MetterStepper();
         var doorStatusHandler = new DoorStatusHandler();
-        doorStatusHandler.Poll();
+        doorStatusHandler.Init();
         doorStatusHandler.OnDoorStatusChangedEvent += async (door, state) =>
         {
             Console.WriteLine($"[DOOR] Door {door} changed to {state}");
