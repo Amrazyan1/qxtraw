@@ -5,6 +5,7 @@ using qxtraw.Infrastructure.Devices.LED.Presentation;
 class Program
 {
     private static LEDController _ledController;
+    private static IPrinter _printerService;
     private static bool exitRequested = false;
 
     static async Task Main(string[] args)
@@ -56,19 +57,18 @@ class Program
         });
 
         ledThread.Start();
-        IPrinter printerService = new JCMPrinterImpl();
+        _printerService = new JCMPrinterImpl();
 
         var printerThread = new Thread(() =>
               {
-                  printerService.Init();
-                  printerService.PrintDemoTicket();
+                  _printerService.Init();
               });
 
         printerThread.Start();
         var meter = new MetterStepper();
 
 
-        var inputThread = new Thread(() => InputLoop(deviceManager, _ledController, printerService, nfcReader, meter));
+        var inputThread = new Thread(() => InputLoop(deviceManager, _ledController, _printerService, nfcReader, meter));
 
         inputThread.Start();
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
@@ -84,7 +84,7 @@ class Program
 
     }
 
-      private static void HandleUnityCommand(object? sender, string command)
+    private static void HandleUnityCommand(object? sender, string command)
     {
         Console.WriteLine($"[COMMAND FROM Client] Processing: {command}");
         string[] parts = command.Split(':');
@@ -106,6 +106,9 @@ class Program
         {
             case HardwareCommandType.LED:
                 HandleLEDCommand(parts);
+                break;
+            case HardwareCommandType.Printer:
+                HandlePrinterCommand(parts);
                 break;
             // Add cases for other HardwareCommandType enums as you implement them
             // case HardwareCommandType.NFC:
@@ -275,6 +278,29 @@ class Program
         }
     }
 
+    private static void HandlePrinterCommand(string[] parts)
+    {
+        if (parts.Length < 3) // Expected format: Printer:Print:<data>
+        {
+            Console.WriteLine($"Invalid Printer command format: {string.Join(":", parts)}. Expected: Printer:Print:<data>");
+            return;
+        }
+
+        string printerAction = parts[1];
+        if (printerAction.Equals("Print", StringComparison.OrdinalIgnoreCase))
+        {
+            // Reconstruct the data string, as it might contain colons
+            string dataToPrint = string.Join(":", parts, 2, parts.Length - 2);
+            Console.WriteLine($"Received print request for data: {dataToPrint}");
+
+            _printerService.Print(dataToPrint);
+        }
+        else
+        {
+            Console.WriteLine($"Unknown Printer action: {printerAction}");
+        }
+    }
+
     private static void InputLoop(DeviceManager manager, LEDController ledController, IPrinter printerService, NFCReader nFCReader, MetterStepper metterStepper)
     {
         while (!exitRequested)
@@ -330,16 +356,16 @@ class Program
 
 }
 
-    /// <summary>
-    /// Defines the general types of hardware commands.
-    /// This helps categorize the incoming TCP messages.
-    /// </summary>
-    public enum HardwareCommandType
-    {
-        LED,
-        NFC,
-        BillAcceptor,
-        Printer,
-        Counter,
-        Alarm,
-    }
+/// <summary>
+/// Defines the general types of hardware commands.
+/// This helps categorize the incoming TCP messages.
+/// </summary>
+public enum HardwareCommandType
+{
+    LED,
+    NFC,
+    BillAcceptor,
+    Printer,
+    Counter,
+    Alarm,
+}
