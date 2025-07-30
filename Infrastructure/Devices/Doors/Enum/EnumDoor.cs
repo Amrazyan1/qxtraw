@@ -1,0 +1,6 @@
+enum EnumDoors
+{
+  BELLY_DOOR = 2,// FRONT DOOR
+  MAIN_DOOR = 3, //SCREENS DOOR
+  KEY_SWITCH = 4, //BILL CASH DOOR
+}
