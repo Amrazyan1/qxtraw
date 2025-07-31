@@ -17,14 +17,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="libqxtrav.so">
+    <None Update="_soFiles/libqxtrav.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <LinkBase>linux-x64</LinkBase>
       <Pack>true</Pack>
       <PackagePath>runtimes/linux-x64/native/</PackagePath>
     </None>
 
-    <None Update="libqxt.so">
+    <None Update="_soFiles/libqxt.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <LinkBase>linux-x64</LinkBase>
       <Pack>true</Pack>
