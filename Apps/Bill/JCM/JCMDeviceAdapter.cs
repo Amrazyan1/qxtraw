@@ -353,15 +353,16 @@ class JCMDeviceAdapter : IDeviceAdapter
             {
                 byte[] buffer = getStatus.OutputBuffer;
 
-                if (IsCoupon(buffer))
+                if (IsBillChannel(buffer[1]))
                 {
-                    string coupon = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4).Trim('\0');
-                    Console.WriteLine($"📠 Coupon detected: {coupon}");
+                    int? denomIndex = GetDenominationIndex(buffer);
+                    int mappedValue = MapChannelToValue(buffer[1]);
+                    Console.WriteLine($"💶 Money inserted — Denomination index: {denomIndex} Mapped value: {mappedValue}€");
                 }
                 else
                 {
-                    int? denomIndex = GetDenominationIndex(buffer);
-                    Console.WriteLine($"💶 Money inserted — Denomination index: {denomIndex}");
+                    string coupon = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4).Trim('\0');
+                    Console.WriteLine($"📠 Coupon detected: {coupon}");
                 }
 
                 Console.WriteLine("Escrow buffer: " + BitConverter.ToString(buffer));
@@ -375,6 +376,27 @@ class JCMDeviceAdapter : IDeviceAdapter
 
         return false;
     }
+    private bool IsBillChannel(byte channel)
+    {
+        // Euro bill channels: 0x61-0x65
+        return channel >= 61 && channel <= 65;
+    }
+
+    private int MapChannelToValue(byte channel)
+    {
+        // Euro bill mapping
+        switch (channel)
+        {
+            case 0x61: return 0;   // €0
+            case 0x62: return 5;   // €5
+            case 0x63: return 10;  // €10
+            case 0x64: return 20;  // €20
+            case 0x65: return 50;  // €50
+
+            default: return channel;
+        }
+    }
+
     private static bool IsCoupon(byte[] buffer)
     {
         if (buffer.Length < 16)
@@ -383,6 +405,7 @@ class JCMDeviceAdapter : IDeviceAdapter
         string ascii = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4);
         return ascii.Any(c => char.IsLetterOrDigit(c)); // contains readable ASCII
     }
+
     private static int? GetDenominationIndex(byte[] buffer)
     {
         if (buffer.Length < 4)
