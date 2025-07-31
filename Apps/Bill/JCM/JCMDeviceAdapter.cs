@@ -352,14 +352,21 @@ class JCMDeviceAdapter : IDeviceAdapter
             if (finalStatus == JCMStatusResponse.Escrow)
             {
                 byte[] buffer = getStatus.OutputBuffer;
-                byte denomination = (byte)((buffer[3] & 0x38) >> 3);// Bits 3-5 represent the denomination
 
-                string barcode = buffer.fromHexToASCII();
-                Console.WriteLine($"📦 Barcode: {barcode}");
-                Console.WriteLine($"Denomination: {denomination},");
-                Console.WriteLine("Escrow buffer: " + BitConverter.ToString(getStatus.OutputBuffer));
+                if (IsCoupon(buffer))
+                {
+                    string coupon = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4).Trim('\0');
+                    Console.WriteLine($"📠 Coupon detected: {coupon}");
+                }
+                else
+                {
+                    int? denomIndex = GetDenominationIndex(buffer);
+                    Console.WriteLine($"💶 Money inserted — Denomination index: {denomIndex}");
+                }
 
+                Console.WriteLine("Escrow buffer: " + BitConverter.ToString(buffer));
             }
+
             if (expectedStatuses.Contains(finalStatus))
                 return true;
 
@@ -368,7 +375,24 @@ class JCMDeviceAdapter : IDeviceAdapter
 
         return false;
     }
+    private static bool IsCoupon(byte[] buffer)
+    {
+        if (buffer.Length < 16)
+            return false;
 
+        string ascii = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4);
+        return ascii.Any(c => char.IsLetterOrDigit(c)); // contains readable ASCII
+    }
+    private static int? GetDenominationIndex(byte[] buffer)
+    {
+        if (buffer.Length < 4)
+            return null;
+
+        byte raw = buffer[3];
+        int index = (raw & 0x38) >> 3;
+
+        return index;
+    }
 
     public void ReturnBill()
     {
