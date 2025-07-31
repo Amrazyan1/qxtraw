@@ -14,7 +14,7 @@ public class QxLedController : IDisposable
     public int manualLedCount = 30;
 
     private const string LIB = "qled";
-    private const int CHANNEL_COUNT = 4;
+    public const int CHANNEL_COUNT = 4;
 
     private IntPtr[] _handles = new IntPtr[CHANNEL_COUNT];
     private byte[][] _frames = new byte[CHANNEL_COUNT][];

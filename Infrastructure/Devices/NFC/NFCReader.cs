@@ -19,9 +19,13 @@ class NFCReader
     private bool IsEmpty(ICollection<string> readerNames) => readerNames == null || readerNames.Count < 1;
 
     private bool _pooling = true;
-    public void Init()
+
+    private TcpServer _server;
+
+    public void Init(TcpServer server)
     {
         Console.WriteLine("NFCReader Init()");
+        _server = server;
 
         var readerNames = GetReaderNames();
 
@@ -37,11 +41,14 @@ class NFCReader
         // OnStatusChanged += StatusChanged;
         OnException += MonitorException;
 
-        OnCardInserted += (sender, args) =>
-                {
-                    // Console.WriteLine("NFCReader OnCardInserted() Sleeping thread for 1 second to allow card processing...");
-                    // Thread.Sleep(1000);
-                };
+        OnCardInserted += async (sender, args) =>
+ {
+     Console.WriteLine($"[NFC] Card Inserted: {args.ReaderName}");
+     string atrString = BitConverter.ToString(args.Atr ?? new byte[0]);
+     Console.WriteLine($"[NFC] ATR: {atrString}");
+     await _server.SendMessageAsync(HardwareCommandType.NFC + $"{atrString}"); // This sends the ATR
+     Thread.Sleep(1000);
+ };
 
         using (var monitor = MonitorFactory.Instance.Create(SCardScope.System))
         {
@@ -101,9 +108,9 @@ class NFCReader
 
     private void DisplayEvent(string eventName, CardStatusEventArgs unknown)
     {
-        Console.WriteLine("NFCReader DisplayEvent()>> {0} Event for reader: {1}", eventName, unknown.ReaderName);
-        Console.WriteLine("NFCReader DisplayEvent() ATR: {0}", BitConverter.ToString(unknown.Atr ?? new byte[0]));
-        Console.WriteLine("NFCReader DisplayEvent() State: {0}\n", unknown.State);
+        // Console.WriteLine("NFCReader DisplayEvent()>> {0} Event for reader: {1}", eventName, unknown.ReaderName);
+        // Console.WriteLine("NFCReader DisplayEvent() ATR: {0}", BitConverter.ToString(unknown.Atr ?? new byte[0]));
+        // Console.WriteLine("NFCReader DisplayEvent() State: {0}\n", unknown.State);
     }
 
     private void StatusChanged(object sender, StatusChangeEventArgs args)

@@ -4,14 +4,32 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="PCSC" Version="7.0.1" />
     <PackageReference Include="PCSC.Iso7816" Version="7.0.1" />
     <PackageReference Include="Quixant.LibRAV" Version="1.2.2.1" />
     <PackageReference Include="Quixant.LibQLed" Version="4.0.0" />
-    <PackageReference Include="Quixant.LibQLed" Version="4.0.0" />
     <PackageReference Include="Quixant.LibQxt" Version="9.1.1" />
     <PackageReference Include="System.IO.Ports" Version="9.0.7" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="libqxtrav.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <LinkBase>linux-x64</LinkBase>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/</PackagePath>
+    </None>
+
+    <None Update="libqxt.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <LinkBase>linux-x64</LinkBase>
+      <Pack>true</Pack>
+      <PackagePath>runtimes/linux-x64/native/</PackagePath>
+    </None>
+  </ItemGroup>
+
 </Project>
