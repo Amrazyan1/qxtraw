@@ -13,7 +13,6 @@ class Program
     {
         Console.WriteLine("Starting device...");
         PrintWelcome();
-
         var server = new TcpServer(5000);
         _ledController = new LEDController();
         _printerService = new JCMPrinterImpl();
@@ -33,9 +32,9 @@ class Program
 
         StartInputThread(deviceManager, _ledController, _printerService, nfcReader, meter);
 
-        _ = server.StartAsync();
         server.OnClientDisconnected += (_, __) => Console.WriteLine("🔄 Unity disconnected. Will wait for reconnection...");
         Console.WriteLine("✅ Server started. Waiting for Unity client...");
+        await server.StartAsync();
     }
 
     private static void PrintWelcome()
