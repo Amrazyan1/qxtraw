@@ -311,6 +311,8 @@ public class MEIDeviceAdapter : IDeviceAdapter
                 Console.WriteLine("Devicemanager MeiPoll() Received escrowed event");
                 int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
                 Console.WriteLine($"Denomination index: {denominationIndex}");
+                Thread.Sleep(1000);
+                StackBill();
             }
             else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
             {
@@ -318,6 +320,8 @@ public class MEIDeviceAdapter : IDeviceAdapter
                 Console.WriteLine("Devicemanager MeiPoll() Received escrowed event");
                 int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
                 Console.WriteLine($"Denomination index: {denominationIndex}");
+                Thread.Sleep(1000);
+                StackBill();
             }
             else if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
             {
