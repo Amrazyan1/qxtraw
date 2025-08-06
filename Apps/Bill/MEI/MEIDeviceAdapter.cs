@@ -258,10 +258,6 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
     public void Poll()
     {
-        byte[] buffer = new byte[128];
-        if (IsPolling)
-            Console.WriteLine("MEIDeviceAdapter MeiPoll() Start task (E7 command) send polling to Note Acceptor \n");
-
         uint outLen = 0;
         while (IsPolling)
         {
@@ -316,7 +312,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
             }
             else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
             {
-                Console.WriteLine("Devicemanager MeiPoll() Received status Extended : 0x{0:X2} 0x{1:X2} 0x{2:X2}", buffer[0], buffer[1], buffer[2]);
+                Console.WriteLine("Devicemanager MeiPoll() Received status Extended : 0x{0:X2} 0x{1:X2} 0x{2:X2}", stdHostToAcc.OutputBuffer[0], stdHostToAcc.OutputBuffer[1], stdHostToAcc.OutputBuffer[2]);
                 Console.WriteLine("Devicemanager MeiPoll() Received escrowed event");
                 int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
                 Console.WriteLine($"Denomination index: {denominationIndex}");
@@ -326,6 +322,22 @@ public class MEIDeviceAdapter : IDeviceAdapter
             else if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
             {
                 Console.WriteLine("Devicemanager MeiPoll() Received status: 0x{0:X8}", stdHostToAcc.OutputBuffer[1]);
+            }
+            else if (outLen >= 5 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Stacking) == MeiStatus.Stacking)
+            {
+                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacking outLen[5]", stdHostToAcc.OutputBuffer[1]);
+            }
+            else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Stacking) == MeiStatus.Stacking)
+            {
+                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacking [outLen10]", stdHostToAcc.OutputBuffer[1]);
+            }
+            else if (outLen >= 5 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Stacked) == MeiStatus.Stacked)
+            {
+                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacked outLen[5]", stdHostToAcc.OutputBuffer[1]);
+            }
+            else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Stacked) == MeiStatus.Stacked)
+            {
+                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
             }
 
             Thread.Sleep(200);
