@@ -162,7 +162,6 @@ class JCMDeviceAdapter : IDeviceAdapter
                         _device.Set(setInhibit);
                     }
 
-                    Console.WriteLine("Timed out waiting for Accepting/Escrow. Skipping.");
                     continue;
                 }
 
@@ -191,10 +190,27 @@ class JCMDeviceAdapter : IDeviceAdapter
                 _device.Execute(ack);
                 Thread.Sleep(500);
                 Console.WriteLine($"ACK sent at {DateTime.Now:HH:mm:ss.fff}");
-
+                _device.Get(getStatus);
+                if (getStatus.OutputBuffer[0] == (byte)JCMStatusResponse.Stacked)
+                {
+                    Console.WriteLine($"[JCMDeviceAdapter] [Poll] Stacked r ");
+                    Thread.Sleep(500);
+                }
+                else if (getStatus.OutputBuffer[0] == (byte)JCMStatusResponse.VendValid)
+                {
+                    _device.Execute(ack);
+                    Console.Write("Acknowledge resent\n");
+                }
+                else if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Enable)
+                {
+                    Console.Write("Waiting for idling status. Current status 0x{0:X2}\n", getStatus.OutputBuffer[0]);
+                    Thread.Sleep(500);
+                }
                 sw.Stop();
                 Console.WriteLine("JCMDeviceAdapter Poll() Bill stacked successfully.");
                 printTime(sw.ElapsedTicks, 1);
+
+
             }
             catch (Exception ex)
             {
@@ -203,100 +219,6 @@ class JCMDeviceAdapter : IDeviceAdapter
         }
 
         Console.WriteLine("JCMDeviceAdapter Poll() Polling ended.");
-    }
-
-    private void testProgramSignature(RAVDevice device)
-    {
-        int retries = 0;
-        uint outLen = 0;
-        ushort crc = 0;
-        Stopwatch sw = null;
-        JCMCommand getStatus = new JCMCommand(JCMInstruction.GetStatus, 0, 128);
-        JCMCommand setInhibit = new JCMCommand(JCMInstruction.SetInhibit, 1, 0);
-        JCMCommand prsig = new JCMCommand(JCMInstruction.ProgramSignature, 2, 0);
-        JCMCommand ack = new JCMCommand(JCMInstruction.Ack, 0, 0);
-
-        try
-        {
-            sw = Stopwatch.StartNew();
-
-            // What for the device to be idling or disabled
-            do
-            {
-                device.Get(getStatus);
-                retries++;
-
-                if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Enable && getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Disabled)
-                    Thread.Sleep(1000);
-
-            } while (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Enable && getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Disabled && retries < 30);
-
-            if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Enable && getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Disabled)
-            {
-                Console.Write("Timed out or error occurred waiting for the device to be idling or disabled. Exiting test.\n");
-                return;
-            }
-            else if (getStatus.OutputBuffer[0] == (byte)JCMStatusResponse.Enable)
-            {
-                Console.Write("Idling status detected. Now disabling...\n");
-
-                // Disable the device
-                setInhibit.InputBuffer[0] = 1;
-                device.Set(setInhibit);
-
-                // Check if the device is disabled		
-                device.Get(getStatus);
-
-                if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Disabled)
-                {
-                    Console.Write("Failed to disable the device. Exiting test.\n");
-                    return;
-                }
-            }
-
-            // Execute program signature using 0 as seed value
-            device.Set(prsig);
-
-            Console.Write("Program signature sent. Waiting for the device to finish processing it...\n");
-            // Wait for the device to finish processing the request
-            do
-            {
-                outLen = device.Get(getStatus);
-                retries++;
-
-                if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.ProgramSignatureEnd)
-                    Thread.Sleep(1000);
-
-            } while (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.ProgramSignatureEnd && retries < 10);
-
-            if (outLen == 3)
-            {
-                byte[] crcBytes = { getStatus.OutputBuffer[2], getStatus.OutputBuffer[1] };
-                crc = BitConverter.ToUInt16(crcBytes, 0);
-            }
-            else
-                crc = 0;
-
-            Console.Write("Device finished processing\n");
-            // Send acknowledge	
-            device.Execute(ack);
-            device.Get(getStatus);
-
-            if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Disabled)
-            {
-                Console.Write("Unexpected status (0x{0:X2}).\n", getStatus.OutputBuffer[0]);
-                return;
-            }
-
-            sw.Stop();
-            Console.Write("Test executed successfully. Received CRC = 0x{0:X4}\n", crc);
-        }
-        catch (Exception exc)
-        {
-            Console.WriteLine("Program signature failed. Error: " + exc.Message);
-        }
-
-        printTime(sw.ElapsedTicks, 1);
     }
 
     private void enableInterrupts(RAVDevice device)
