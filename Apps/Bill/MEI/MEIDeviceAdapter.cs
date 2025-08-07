@@ -319,7 +319,9 @@ public class MEIDeviceAdapter : IDeviceAdapter
                 Thread.Sleep(1000);
                 StackBill();
             }
-            else if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
+            outLen = _device.Get(stdHostToAcc);
+
+            if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
             {
                 Console.WriteLine("Devicemanager MeiPoll() Received status: 0x{0:X8}", stdHostToAcc.OutputBuffer[1]);
             }

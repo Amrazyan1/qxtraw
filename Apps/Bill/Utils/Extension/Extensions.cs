@@ -6,7 +6,7 @@ public static class Extensions
 {
     public static void ExecuteWithMenuOption(this RAVDevice device, MenuOption option)
     {
-        Stopwatch sw;
+        // Stopwatch sw;
         RAVCommand cmd = null;
 
         if (device.Protocol == ProtocolIdentifier.JCM)
@@ -20,9 +20,9 @@ public static class Extensions
 
         try
         {
-            sw = Stopwatch.StartNew();
+            // sw = Stopwatch.StartNew();
             device.Execute(cmd);
-            sw.Stop();
+            // sw.Stop();
         }
         catch (Exception exc)
         {
@@ -31,7 +31,7 @@ public static class Extensions
         }
 
         Console.WriteLine("Command executed");
-        printTime(sw.ElapsedTicks, 1);
+        // printTime(sw.ElapsedTicks, 1);
     }
 
     public static string fromHexToASCII(this byte[] buffer)
