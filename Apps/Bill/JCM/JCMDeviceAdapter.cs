@@ -13,6 +13,22 @@ class JCMDeviceAdapter : IDeviceAdapter
     public SerialPortIndex port { get => _port; set => _port = value; }
 
     private int _threadSleepTime = 500;
+
+    public event Action<string> OnStacked;
+    public event Action<string> OnReturned;
+    public event Action<string> OnEscrowed;
+    public event Action<string> OnAccepted;
+    public event Action<string> OnIdling;
+    public event Action<string> OnJammed;
+    public event Action<string> OnCheated;
+    public event Action<string> OnRejected;
+    public event Action<string> OnStackerFull;
+    public event Action<string> OnPaused;
+    public event Action<string> OnCalibration;
+    public event Action<string> OnPowerUp;
+    public event Action<string> OnInvalidCommand;
+    public event Action<string> OnFailure;
+
     public JCMDeviceAdapter(SerialPortIndex port)
     {
         _device = new RAVDevice(port, ProtocolIdentifier.JCM);
