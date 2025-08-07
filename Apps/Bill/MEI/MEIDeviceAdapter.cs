@@ -59,7 +59,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
     public void Init()
     {
-        MEIInstruction instruction = MEIInstruction.InitExtCfscAndPoll;//TODO change to Icommand adapter
+        MEIInstruction instruction = MEIInstruction.InitAndPoll;//TODO change to Icommand adapter
         uint outLen = 0;
         MEICommand reset = new MEICommand(MEIInstruction.SoftReset, 0, 0);
         MEICommand stdHostToAcc = new MEICommand(MEIInstruction.StdHostToAcc, 0, 128);
@@ -90,19 +90,19 @@ public class MEIDeviceAdapter : IDeviceAdapter
             int initWait = 0;
 
             _device.Execute(reset);
-            Console.WriteLine("MEIDeviceAdapter initMEI() Waiting for the _device to initialize...");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Waiting for the _device to initialize...");
 
             while (initWait < 30)
             {
                 try
                 {
                     outLen = _device.Get(stdHostToAcc);
-                    Console.WriteLine("MEIDeviceAdapter initMEI() Initialization done");
+                    Console.WriteLine("[MEIDeviceAdapter] initMEI() Initialization done");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"MEIDeviceAdapter initMEI() initWait. {ex.Message}");
+                    Console.WriteLine($"[MEIDeviceAdapter] initMEI() initWait. {ex.Message}");
                     initWait++;
                     Thread.Sleep(50);
                 }
@@ -110,7 +110,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Operation failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Operation failed: " + exc.Message);
             return;
         }
         Stopwatch sw = null;
@@ -118,23 +118,23 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()  _device.Set(setDenom);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() _device.Set(setDenom);");
             _device.Set(setDenom);
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set denomination failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set denomination failed: " + exc.Message);
             return;
         }
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()  _device.Set(setInt);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() _device.Set(setInt);");
             _device.Set(setInt);
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set interrupt failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set interrupt failed: " + exc.Message);
             return;
         }
 
@@ -150,61 +150,61 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()   _device.Set(setOri);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() _device.Set(setOri);");
 
             _device.Set(setOri);
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set orientation failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set orientation failed: " + exc.Message);
             return;
         }
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()  setEscrow.RunOn(_device);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() setEscrow.RunOn(_device);");
             _device.Set(setEscrow);
             // setEscrow.RunOn(_device); //alternate way of calling a command
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set escrow failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set escrow failed: " + exc.Message);
             return;
         }
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()   setPush.RunOn(_device);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() setPush.RunOn(_device);");
             _device.Set(setPush);
             // setPush.RunOn(_device);
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set push failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set push failed: " + exc.Message);
             return;
         }
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()   setBar.RunOn(_device);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() setBar.RunOn(_device);");
             _device.Set(setBar);
             // setBar.RunOn(_device);
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set barcode decoding failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set barcode decoding failed: " + exc.Message);
             return;
         }
 
         try
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI()    setPup.RunOn(_device);");
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() setPup.RunOn(_device);");
             _device.Set(setPup);
             // setPup.RunOn(_device);
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Set powerup failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Set powerup failed: " + exc.Message);
             return;
         }
         sw.Stop();
@@ -256,7 +256,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Init and Poll failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Init and Poll failed: " + exc.Message);
             return;
         }
         try
@@ -265,11 +265,11 @@ public class MEIDeviceAdapter : IDeviceAdapter
         }
         catch (Exception exc)
         {
-            Console.WriteLine("MEIDeviceAdapter initMEI() Disable extended coupon reporting failed: " + exc.Message);
+            Console.WriteLine("[MEIDeviceAdapter] initMEI() Disable extended coupon reporting failed: " + exc.Message);
             return;
         }
 
-        Console.Write("MEIDeviceAdapter initMEI() Test executed successfully\n");
+        Console.Write("[MEIDeviceAdapter] initMEI() Test executed successfully\n");
     }
 
     public void Poll()
@@ -286,7 +286,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
             }
             catch (System.Exception ex)
             {
-                Console.WriteLine($"MEIDeviceAdapter Poll() ERROR {ex.Message}");
+                Console.WriteLine($"[MEIDeviceAdapter] Poll() ERROR {ex.Message}");
                 continue;
             }
 
@@ -295,25 +295,10 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
             if (parsedStatus.HasFlag(MeiStatus.Rejected))
             {
-                Console.WriteLine("!IMPORTANT Bill rejected. Reason code: 0x{0:X2}", stdHostToAcc.OutputBuffer[4]);
+                Console.WriteLine("[MEIDeviceAdapter] !IMPORTANT Bill rejected. Reason code: 0x{0:X2}", stdHostToAcc.OutputBuffer[4]);
             }
 
-            Console.WriteLine($"Polling status: 0x{status:X8} {parsedStatus}");
-
-            // Console.Write("[MEIDeviceAdapter] IMPORTANT Status bytes: ");
-            // for (int i = 1; i <= 4; i++)
-            // {
-            //     Console.Write($"0x{stdHostToAcc.OutputBuffer[i]:X2} ");
-            // }
-            // Console.WriteLine();
-
-            foreach (MeiStatus flag in Enum.GetValues(typeof(MeiStatus)))
-            {
-                if (parsedStatus.HasFlag(flag) && flag != 0)
-                {
-                    Console.Write($"{flag} |");
-                }
-            }
+            Console.WriteLine($"[MEIDeviceAdapter] Polling status: 0x{status:X8} outlen : {outLen}, outpurBufferLenght:{stdHostToAcc.OutputBuffer.Length} {parsedStatus}");
 
             if (stdHostToAcc.OutputBuffer[0] == (byte)MEIInstruction.ExtendedMsgSet)
             {
@@ -321,27 +306,24 @@ public class MEIDeviceAdapter : IDeviceAdapter
                 if (subtype == (byte)MEIMessageExtendedSubtype.ExtendedBarcodeReply)
                 {
                     byte denomId = stdHostToAcc.OutputBuffer[8];
-                    Console.WriteLine($"Detected Denomination ID: {denomId}");
+                    Console.WriteLine($"[MEIDeviceAdapter] Detected Denomination ID: {denomId}");
                 }
             }
 
-            /*
-             (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Escrowed)
-             */
             if (outLen >= 5 && parsedStatus.HasFlag(MeiStatus.Escrowed))
             {
-                Console.WriteLine("Devicemanager MeiPoll() Received escrowed event");
+                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received escrowed event");
                 int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
-                Console.WriteLine($"Denomination index: {denominationIndex}");
+                Console.WriteLine($"[MEIDeviceAdapter] index: {denominationIndex}");
                 Thread.Sleep(1000);
                 StackBill();
             }
-            else if (outLen >= 10 && parsedStatus.HasFlag(MeiStatus.Escrowed)) //(((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
+            else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
             {
-                Console.WriteLine("Devicemanager MeiPoll() Received status Extended : 0x{0:X2} 0x{1:X2} 0x{2:X2}", stdHostToAcc.OutputBuffer[0], stdHostToAcc.OutputBuffer[1], stdHostToAcc.OutputBuffer[2]);
-                Console.WriteLine("Devicemanager MeiPoll() Received escrowed event");
+                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received status Extended : 0x{0:X2} 0x{1:X2} 0x{2:X2}", stdHostToAcc.OutputBuffer[0], stdHostToAcc.OutputBuffer[1], stdHostToAcc.OutputBuffer[2]);
+                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received escrowed event");
                 int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
-                Console.WriteLine($"Denomination index: {denominationIndex}");
+                Console.WriteLine($"[MEIDeviceAdapter] Denomination index: {denominationIndex}");
                 Thread.Sleep(1000);
                 StackBill();
             }
@@ -355,29 +337,29 @@ public class MEIDeviceAdapter : IDeviceAdapter
             if (outLen >= 5 && parsedStatus.HasFlag(MeiStatus.Stacked))
             {
                 Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked outLen[5]", stdHostToAcc.OutputBuffer[1]);
-                OnStacked?.Invoke($"Stacked: {stdHostToAcc.OutputBuffer[1]}");
+                OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
             }
             if (outLen >= 10 && parsedStatus.HasFlag(MeiStatus.Stacked))
             {
                 Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
-                OnStacked?.Invoke($"Stacked: {stdHostToAcc.OutputBuffer[1]}");
+                OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
             }
 
             Thread.Sleep(200);
         }
 
-        Console.WriteLine("Devicemanager MeiPoll() exited polling loop.");
+        Console.WriteLine("[MEIDeviceAdapter] Devicemanager MeiPoll() exited polling loop.");
     }
 
     public void ReturnBill()
     {
-        Console.WriteLine("MEIDeviceAdapter ReturnBill() Bill return.");
+        Console.WriteLine("[MEIDeviceAdapter] ReturnBill() Bill return.");
         this._device.ExecuteWithMenuOption(MenuOption.MEI_Return);
     }
 
     public void StackBill()
     {
-        Console.WriteLine("MEIDeviceAdapter StackBill() ");
+        Console.WriteLine("[MEIDeviceAdapter] StackBill() ");
         this._device.ExecuteWithMenuOption(MenuOption.MEI_Stack);
     }
 
@@ -409,6 +391,4 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
         Console.Write("\n----------------  End of results  ----------------\n");
     }
-
-
 }
