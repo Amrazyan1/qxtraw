@@ -323,23 +323,23 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
             if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
             {
-                Console.WriteLine("Devicemanager MeiPoll() Received status: 0x{0:X8}", stdHostToAcc.OutputBuffer[1]);
+                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received status: 0x{0:X8}", stdHostToAcc.OutputBuffer[1]);
             }
-            else if (outLen >= 5 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Stacking) == MeiStatus.Stacking)
+            if (outLen >= 5 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Stacking) == MeiStatus.Stacking)
             {
-                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacking outLen[5]", stdHostToAcc.OutputBuffer[1]);
+                Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacking outLen[5]", stdHostToAcc.OutputBuffer[1]);
             }
-            else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Stacking) == MeiStatus.Stacking)
+            if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Stacking) == MeiStatus.Stacking)
             {
-                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacking [outLen10]", stdHostToAcc.OutputBuffer[1]);
+                Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacking [outLen10]", stdHostToAcc.OutputBuffer[1]);
             }
-            else if (outLen >= 5 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Stacked) == MeiStatus.Stacked)
+            if (outLen >= 5 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1)) & MeiStatus.Stacked) == MeiStatus.Stacked)
             {
-                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacked outLen[5]", stdHostToAcc.OutputBuffer[1]);
+                Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked outLen[5]", stdHostToAcc.OutputBuffer[1]);
             }
-            else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Stacked) == MeiStatus.Stacked)
+            if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Stacked) == MeiStatus.Stacked)
             {
-                Console.WriteLine("[Devicemanager] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
+                Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
             }
 
             Thread.Sleep(200);
