@@ -345,7 +345,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
                 }
             }
 
-            Thread.Sleep(200);
+            Thread.Sleep(500);
             sw.Stop();
             printTime(sw.ElapsedTicks, 1);
         }
