@@ -275,14 +275,15 @@ public class MEIDeviceAdapter : IDeviceAdapter
     public void Poll()
     {
         uint outLen = 0;
+        MEICommand stdHostToAcc = new MEICommand(MEIInstruction.StdHostToAcc, 0, 128);
+
         while (IsPolling)
         {
-            // Standard host to acceptor poll. When using input length 0 the library fills in the
-            // data with the current configuration
-            MEICommand stdHostToAcc = new MEICommand(MEIInstruction.StdHostToAcc, 0, 128);
+            Stopwatch sw = null;
+            sw = Stopwatch.StartNew();
             try
             {
-                outLen = _device.Get(stdHostToAcc);
+                outLen = stdHostToAcc.RunOn(_device);// _device.Get(stdHostToAcc);
             }
             catch (System.Exception ex)
             {
@@ -300,55 +301,77 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
             Console.WriteLine($"[MEIDeviceAdapter] Polling status: 0x{status:X8} outlen : {outLen}, outpurBufferLenght:{stdHostToAcc.OutputBuffer.Length} {parsedStatus}");
 
-            if (stdHostToAcc.OutputBuffer[0] == (byte)MEIInstruction.ExtendedMsgSet)
+            if ((stdHostToAcc.OutputBuffer[0] & 0xF0) == (int)MEIInstruction.ExtendedMsgSet)
             {
                 byte subtype = stdHostToAcc.OutputBuffer[1];
                 if (subtype == (byte)MEIMessageExtendedSubtype.ExtendedBarcodeReply)
                 {
-                    byte denomId = stdHostToAcc.OutputBuffer[8];
-                    Console.WriteLine($"[MEIDeviceAdapter] Detected Denomination ID: {denomId}");
+                    // The extended data field for Barcodes is 28 bytes long and represented in ASCII.
+                    // The Barcode data is left justified LSC (Least Significant Character)
+                    // and all unused bytes are filled with 0x28.
+                    // First 8 bytes are:
+                    // Message type + Sybtype + Status data (4 bytes) + Model# + Revision#
+                    Console.Write("Barcode value: ");
+                    for (int i = 8; i < 28 && stdHostToAcc.OutputBuffer[i] != 0x28; i++)
+                    {
+                        Console.Write((char)stdHostToAcc.OutputBuffer[i]);
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine("Sending stack command...");
+                    Thread.Sleep(1000);
+                    StackBill();
+                }
+            }
+            else if ((stdHostToAcc.OutputBuffer[0] & 0xF0) == (int)MEIInstruction.StdAccToHost)
+            {
+                if (outLen >= 5 && parsedStatus.HasFlag(MeiStatus.Escrowed))
+                {
+                    Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received escrowed event");
+                    int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
+                    Console.WriteLine($"[MEIDeviceAdapter] index: {denominationIndex}");
+                    Thread.Sleep(1000);
+                    StackBill();
+                    WaitForSignalsAfterStacking(stdHostToAcc, parsedStatus);
+                }
+                else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
+                {
+                    Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received status Extended : 0x{0:X2} 0x{1:X2} 0x{2:X2}", stdHostToAcc.OutputBuffer[0], stdHostToAcc.OutputBuffer[1], stdHostToAcc.OutputBuffer[2]);
+                    Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received escrowed event");
+                    int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
+                    Console.WriteLine($"[MEIDeviceAdapter] Denomination index: {denominationIndex}");
+                    Thread.Sleep(1000);
+                    StackBill();
+                    WaitForSignalsAfterStacking(stdHostToAcc, parsedStatus);
                 }
             }
 
-            if (outLen >= 5 && parsedStatus.HasFlag(MeiStatus.Escrowed))
-            {
-                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received escrowed event");
-                int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
-                Console.WriteLine($"[MEIDeviceAdapter] index: {denominationIndex}");
-                Thread.Sleep(1000);
-                StackBill();
-            }
-            else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
-            {
-                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received status Extended : 0x{0:X2} 0x{1:X2} 0x{2:X2}", stdHostToAcc.OutputBuffer[0], stdHostToAcc.OutputBuffer[1], stdHostToAcc.OutputBuffer[2]);
-                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received escrowed event");
-                int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
-                Console.WriteLine($"[MEIDeviceAdapter] Denomination index: {denominationIndex}");
-                Thread.Sleep(1000);
-                StackBill();
-            }
-            outLen = _device.Get(stdHostToAcc);
-
-            if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
-            {
-                Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received status: 0x{0:X8}", stdHostToAcc.OutputBuffer[1]);
-            }
-
-            if (outLen >= 5 && parsedStatus.HasFlag(MeiStatus.Stacked))
-            {
-                Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked outLen[5]", stdHostToAcc.OutputBuffer[1]);
-                OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
-            }
-            if (outLen >= 10 && parsedStatus.HasFlag(MeiStatus.Stacked))
-            {
-                Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
-                OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
-            }
-
             Thread.Sleep(200);
+            sw.Stop();
+            printTime(sw.ElapsedTicks, 1);
         }
 
         Console.WriteLine("[MEIDeviceAdapter] Devicemanager MeiPoll() exited polling loop.");
+    }
+
+    private void WaitForSignalsAfterStacking(MEICommand stdHostToAcc, MeiStatus parsedStatus)
+    {
+        uint outLen = _device.Get(stdHostToAcc);
+        if (outLen >= 5 && BitConverter.ToUInt16(stdHostToAcc.OutputBuffer, 1) != 0x1001)
+        {
+            Console.WriteLine("[MEIDeviceAdapter] MeiPoll() Received status: 0x{0:X8}", stdHostToAcc.OutputBuffer[1]);
+        }
+
+        if (outLen >= 5 && parsedStatus.HasFlag(MeiStatus.Stacked))
+        {
+            Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked outLen[5]", stdHostToAcc.OutputBuffer[1]);
+            OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
+        }
+        if (outLen >= 10 && parsedStatus.HasFlag(MeiStatus.Stacked))
+        {
+            Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
+            OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
+        }
+
     }
 
     public void ReturnBill()
