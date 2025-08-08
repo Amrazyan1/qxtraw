@@ -21,7 +21,7 @@ class Program
         var nfcReader = new NFCReader();
         var doorStatusHandler = new DoorStatusHandler();
 
-        StartDeviceThread(deviceManager);
+        StartDeviceThread(deviceManager, server);
         StartNfcThread(nfcReader, server);
         StartLedThread();
         StartPrinterThread();
@@ -53,15 +53,39 @@ class Program
         Console.WriteLine();
     }
 
-    private static void StartDeviceThread(DeviceManager manager)
+    private static void StartDeviceThread(DeviceManager manager, TcpServer server)
     {
-        var deviceThread = new Thread(() => manager.Initalize());
+        var deviceThread = new Thread(() =>
+        {
+            manager.Initalize();
+            manager.OnCasseteRemoved += (message) =>
+            {
+                Console.WriteLine($"[DeviceManager] Cassette removed: {message}");
+            };
+            manager.OnAccepted += (message) =>
+            {
+                Console.WriteLine($"[DeviceManager] Bill accepted: {message}");
+                _ = server.SendMessageAsync(HardwareCommandType.NFC + $"{message}");
+            };
+        });
         deviceThread.Start();
     }
 
     private static void StartNfcThread(NFCReader reader, TcpServer server)
     {
-        var nfcThread = new Thread(() => reader.Init(server));
+        var nfcThread = new Thread(() =>
+        {
+            reader.Init();
+            reader.OnCardInserted += async (sender, args) =>
+            {
+                Console.WriteLine($"[NFC] Card Inserted: {args.ReaderName}");
+                string atrString = BitConverter.ToString(args.Atr ?? new byte[0]);
+                Console.WriteLine($"[NFC] ATR: {atrString}");
+                _ = server.SendMessageAsync(HardwareCommandType.NFC + $"{atrString}");
+                Thread.Sleep(1000);
+            };
+
+        });
         nfcThread.Start();
     }
 

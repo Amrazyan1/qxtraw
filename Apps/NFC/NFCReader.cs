@@ -6,10 +6,6 @@ using PCSC.Utils;
 
 class NFCReader
 {
-    private static bool NoReaderFound(ICollection<string> readerNames) =>
-                readerNames == null || readerNames.Count < 1;
-
-
     public event CardInsertedEvent OnCardInserted;
     public event CardRemovedEvent OnCardRemoved;
     public event CardInitializedEvent OnCardInitialized;
@@ -20,18 +16,16 @@ class NFCReader
 
     private bool _pooling = true;
 
-    private TcpServer _server;
 
-    public void Init(TcpServer server)
+    public void Init()
     {
-        Console.WriteLine("NFCReader Init()");
-        _server = server;
+        Console.WriteLine("[NFCReader] Init()");
 
         var readerNames = GetReaderNames();
 
         if (IsEmpty(readerNames))
         {
-            Console.WriteLine("NFCReader Init() There are currently no readers installed.");
+            Console.WriteLine("[NFCReader] Init() There are currently no readers installed.");
             return;
         }
 
@@ -40,15 +34,6 @@ class NFCReader
         OnCardInitialized += (sender, args) => DisplayEvent("Initialized", args);
         // OnStatusChanged += StatusChanged;
         OnException += MonitorException;
-
-        OnCardInserted += async (sender, args) =>
- {
-     Console.WriteLine($"[NFC] Card Inserted: {args.ReaderName}");
-     string atrString = BitConverter.ToString(args.Atr ?? new byte[0]);
-     Console.WriteLine($"[NFC] ATR: {atrString}");
-     await _server.SendMessageAsync(HardwareCommandType.NFC + $"{atrString}"); // This sends the ATR
-     Thread.Sleep(1000);
- };
 
         using (var monitor = MonitorFactory.Instance.Create(SCardScope.System))
         {

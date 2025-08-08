@@ -156,7 +156,7 @@ class JCMDeviceAdapter : IDeviceAdapter
         const int EscrowTimeout = 10;
         const int VendValidTimeout = 10;
         Stopwatch sw;
-        Console.WriteLine("JCMDeviceAdapter Poll() Please insert bill...");
+        Console.WriteLine("[JCMDeviceAdapter] [Poll] Please insert bill...");
 
         var getStatus = new JCMCommand(JCMInstruction.GetStatus, 0, 128);
         var stack1 = new JCMCommand(JCMInstruction.Stack1, 0, 0);
@@ -169,45 +169,62 @@ class JCMDeviceAdapter : IDeviceAdapter
             try
             {
                 sw = Stopwatch.StartNew();
-                Console.WriteLine("JCMDeviceAdapter Poll() Polling started...");
+                Console.WriteLine("[JCMDeviceAdapter] [Poll] Polling started...");
 
                 if (!WaitForStatus(getStatus, out var status, AcceptTimeout, JCMStatusResponse.Accepting, JCMStatusResponse.Escrow))
                 {
                     if (status == JCMStatusResponse.Disabled)
                     {
-                        Console.WriteLine("Device disabled. Sending SetInhibit...");
+                        Console.WriteLine("[JCMDeviceAdapter] [Poll] Device disabled. Sending SetInhibit...");
                         _device.Set(setInhibit);
                     }
 
                     continue;
                 }
 
-                DispatchStatusEvent(status);
-                Console.WriteLine($"Status reached: {status}");
+                Console.WriteLine($"[JCMDeviceAdapter] Status reached: {status}");
 
                 if (status != JCMStatusResponse.Escrow)
                 {
-                    Console.WriteLine("Waiting for Escrow...");
+                    Console.WriteLine("[JCMDeviceAdapter] Waiting for Escrow...");
                     if (!WaitForStatus(getStatus, out status, EscrowTimeout, JCMStatusResponse.Escrow))
                     {
-                        Console.WriteLine("Timed out waiting for Escrow.");
+                        Console.WriteLine("[JCMDeviceAdapter] Timed out waiting for Escrow.");
                         continue;
+                    }
+                    else
+                    {
+                        byte[] buffer = getStatus.OutputBuffer;
+
+                        if (IsBillChannel(buffer[1]))
+                        {
+                            int? denomIndex = GetDenominationIndex(buffer);
+                            int mappedValue = MapChannelToValue(buffer[1]);
+                            Console.WriteLine($"[JCMDeviceAdapter] Money inserted — Denomination index: {denomIndex} Mapped value: {mappedValue}€");
+                        }
+                        else
+                        {
+                            string coupon = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4).Trim('\0');
+                            Console.WriteLine($"[JCMDeviceAdapter] Coupon detected: {coupon}");
+                        }
+
+                        Console.WriteLine("[JCMDeviceAdapter] Escrow buffer: " + BitConverter.ToString(buffer));
                     }
                 }
                 Thread.Sleep(1000);
-                Console.WriteLine("Escrowed — sending Stack1...");
+                Console.WriteLine("[JCMDeviceAdapter] Escrowed — sending Stack1...");
                 _device.Execute(stack1);
 
                 if (!WaitForStatus(getStatus, out status, VendValidTimeout, JCMStatusResponse.VendValid))
                 {
-                    Console.WriteLine("Timed out waiting for VendValid.");
+                    Console.WriteLine("[JCMDeviceAdapter] Timed out waiting for VendValid.");
                     continue;
                 }
 
-                Console.WriteLine($"VendValid received at {DateTime.Now:HH:mm:ss.fff} — sending ACK.");
+                Console.WriteLine($"[JCMDeviceAdapter] VendValid received at {DateTime.Now:HH:mm:ss.fff} — sending ACK.");
                 _device.Execute(ack);
                 Thread.Sleep(500);
-                Console.WriteLine($"ACK sent at {DateTime.Now:HH:mm:ss.fff}");
+                Console.WriteLine($"[JCMDeviceAdapter] ACK sent at {DateTime.Now:HH:mm:ss.fff}");
                 _device.Get(getStatus);
                 if (getStatus.OutputBuffer[0] == (byte)JCMStatusResponse.Stacked)
                 {
@@ -217,15 +234,15 @@ class JCMDeviceAdapter : IDeviceAdapter
                 else if (getStatus.OutputBuffer[0] == (byte)JCMStatusResponse.VendValid)
                 {
                     _device.Execute(ack);
-                    Console.Write("Acknowledge resent\n");
+                    Console.Write("[JCMDeviceAdapter] Acknowledge resent\n");
                 }
                 else if (getStatus.OutputBuffer[0] != (byte)JCMStatusResponse.Enable)
                 {
-                    Console.Write("Waiting for idling status. Current status 0x{0:X2}\n", getStatus.OutputBuffer[0]);
+                    Console.Write("[JCMDeviceAdapter] Waiting for idling status. Current status 0x{0:X2}\n", getStatus.OutputBuffer[0]);
                     Thread.Sleep(500);
                 }
                 sw.Stop();
-                Console.WriteLine("JCMDeviceAdapter Poll() Bill stacked successfully.");
+                Console.WriteLine("[JCMDeviceAdapter] JCMDeviceAdapter Poll() Bill stacked successfully.");
                 printTime(sw.ElapsedTicks, 1);
 
 
@@ -288,30 +305,15 @@ class JCMDeviceAdapter : IDeviceAdapter
             byte code = getStatus.OutputBuffer[0];
             finalStatus = (JCMStatusResponse)code;
 
+            DispatchStatusEvent(finalStatus);
+
             Console.WriteLine($"Polling: {finalStatus} (0x{code:X2})");
-            if (finalStatus == JCMStatusResponse.Escrow)
-            {
-                byte[] buffer = getStatus.OutputBuffer;
 
-                if (IsBillChannel(buffer[1]))
-                {
-                    int? denomIndex = GetDenominationIndex(buffer);
-                    int mappedValue = MapChannelToValue(buffer[1]);
-                    Console.WriteLine($"💶 Money inserted — Denomination index: {denomIndex} Mapped value: {mappedValue}€");
-                }
-                else
-                {
-                    string coupon = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4).Trim('\0');
-                    Console.WriteLine($"📠 Coupon detected: {coupon}");
-                }
-
-                Console.WriteLine("Escrow buffer: " + BitConverter.ToString(buffer));
-            }
+            Thread.Sleep(_threadSleepTime);
 
             if (expectedStatuses.Contains(finalStatus))
                 return true;
 
-            Thread.Sleep(_threadSleepTime);
         }
 
         return false;
@@ -335,15 +337,6 @@ class JCMDeviceAdapter : IDeviceAdapter
 
             default: return channel;
         }
-    }
-
-    private static bool IsCoupon(byte[] buffer)
-    {
-        if (buffer.Length < 16)
-            return false;
-
-        string ascii = System.Text.Encoding.ASCII.GetString(buffer, 4, buffer.Length - 4);
-        return ascii.Any(c => char.IsLetterOrDigit(c)); // contains readable ASCII
     }
 
     private static int? GetDenominationIndex(byte[] buffer)
