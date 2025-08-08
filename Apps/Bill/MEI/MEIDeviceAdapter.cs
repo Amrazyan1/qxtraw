@@ -292,7 +292,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
             uint status = BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 1);
             MeiStatus parsedStatus = (MeiStatus)status;
-
+            DispatchStatusEvents(parsedStatus);
             if (parsedStatus.HasFlag(MeiStatus.Rejected))
             {
                 Console.WriteLine("[MEIDeviceAdapter] !IMPORTANT Bill rejected. Reason code: 0x{0:X2}", stdHostToAcc.OutputBuffer[4]);
@@ -356,6 +356,28 @@ public class MEIDeviceAdapter : IDeviceAdapter
         }
 
         Console.WriteLine("[MEIDeviceAdapter] Devicemanager MeiPoll() exited polling loop.");
+    }
+    private void DispatchStatusEvents(MeiStatus status)
+    {
+        if (status.HasFlag(MeiStatus.Idling)) OnIdling?.Invoke("[MEIDeviceAdapter] Status: Idling");
+        if (status.HasFlag(MeiStatus.Accepting)) OnAccepted?.Invoke("[MEIDeviceAdapter] Status: Accepting");
+        if (status.HasFlag(MeiStatus.Escrowed)) OnEscrowed?.Invoke("[MEIDeviceAdapter] Status: Escrowed");
+        if (status.HasFlag(MeiStatus.Stacking)) OnStacked?.Invoke("[MEIDeviceAdapter] Status: Stacking");
+        if (status.HasFlag(MeiStatus.Stacked)) OnStacked?.Invoke("[MEIDeviceAdapter] Status: Stacked");
+        if (status.HasFlag(MeiStatus.Returning)) OnReturned?.Invoke("[MEIDeviceAdapter] Status: Returning");
+        if (status.HasFlag(MeiStatus.Returned)) OnReturned?.Invoke("[MEIDeviceAdapter] Status: Returned");
+        if (status.HasFlag(MeiStatus.Cheated)) OnCheated?.Invoke("[MEIDeviceAdapter] Status: Cheated");
+        if (status.HasFlag(MeiStatus.Rejected)) OnRejected?.Invoke("[MEIDeviceAdapter] Status: Rejected");
+        if (status.HasFlag(MeiStatus.Jammed)) OnJammed?.Invoke("[MEIDeviceAdapter] Status: Jammed");
+        if (status.HasFlag(MeiStatus.StackerFull)) OnStackerFull?.Invoke("[MEIDeviceAdapter] Status: Stacker Full");
+        if (status.HasFlag(MeiStatus.Paused)) OnPaused?.Invoke("[MEIDeviceAdapter] Status: Paused");
+        if (status.HasFlag(MeiStatus.Calibration)) OnCalibration?.Invoke("[MEIDeviceAdapter] Status: Calibration");
+        if (status.HasFlag(MeiStatus.PowerUp)) OnPowerUp?.Invoke("[MEIDeviceAdapter] Status: Power Up");
+        if (status.HasFlag(MeiStatus.InvalidCommand)) OnInvalidCommand?.Invoke("[MEIDeviceAdapter] Status: Invalid Command");
+        if (status.HasFlag(MeiStatus.Failure)) OnFailure?.Invoke("[MEIDeviceAdapter] Status: Failure");
+
+        // Special case: cassette removed
+        if (!status.HasFlag(MeiStatus.CassetteAttached)) OnCasseteRemoved?.Invoke("[MEIDeviceAdapter] Cassette removed or missing");
     }
 
     private void WaitForSignalsAfterStacking(MEICommand stdHostToAcc, MeiStatus parsedStatus)

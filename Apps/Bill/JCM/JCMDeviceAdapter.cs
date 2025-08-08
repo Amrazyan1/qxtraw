@@ -182,6 +182,7 @@ class JCMDeviceAdapter : IDeviceAdapter
                     continue;
                 }
 
+                DispatchStatusEvent(status);
                 Console.WriteLine($"Status reached: {status}");
 
                 if (status != JCMStatusResponse.Escrow)
@@ -367,6 +368,62 @@ class JCMDeviceAdapter : IDeviceAdapter
     }
 
     public void Dispose() => _device.Dispose();
+
+    private void DispatchStatusEvent(JCMStatusResponse status)
+    {
+        switch (status)
+        {
+            // case JCMStatusResponse.Idling:
+            //     OnIdling?.Invoke("[JCMDeviceAdapter] Status: Idling");
+            //     break;
+            case JCMStatusResponse.Accepting:
+                OnAccepted?.Invoke("[JCMDeviceAdapter] Status: Accepting");
+                break;
+            case JCMStatusResponse.Escrow:
+                OnEscrowed?.Invoke("[JCMDeviceAdapter] Status: Escrowed");
+                break;
+            case JCMStatusResponse.Stacking:
+                OnStacked?.Invoke("[JCMDeviceAdapter] Status: Stacking");
+                break;
+            case JCMStatusResponse.Stacked:
+                OnStacked?.Invoke("[JCMDeviceAdapter] Status: Stacked");
+                break;
+            case JCMStatusResponse.Returning:
+                OnReturned?.Invoke("[JCMDeviceAdapter] Status: Returning");
+                break;
+
+            case JCMStatusResponse.Cheated:
+                OnCheated?.Invoke("[JCMDeviceAdapter] Status: Cheated");
+                break;
+            case JCMStatusResponse.Rejecting:
+                OnRejected?.Invoke("[JCMDeviceAdapter] Status: Rejected");
+                break;
+            case JCMStatusResponse.JamInAcceptor:
+                OnJammed?.Invoke("[JCMDeviceAdapter] Status: Jammed JamInAcceptor ");
+                break;
+            case JCMStatusResponse.JamInStacker:
+                OnJammed?.Invoke("[JCMDeviceAdapter] Status: Jammed JamInStacker");
+                break;
+            case JCMStatusResponse.StackerFull:
+                OnStackerFull?.Invoke("[JCMDeviceAdapter] Status: Stacker Full");
+                break;
+            case JCMStatusResponse.Pause:
+                OnPaused?.Invoke("[JCMDeviceAdapter] Status: Paused");
+                break;
+            case JCMStatusResponse.PowerUp:
+                OnPowerUp?.Invoke("[JCMDeviceAdapter] Status: Power Up");
+                break;
+            case JCMStatusResponse.InvalidCommand:
+                OnInvalidCommand?.Invoke("[JCMDeviceAdapter] Status: Invalid Command");
+                break;
+            case JCMStatusResponse.Failure:
+                OnFailure?.Invoke("[JCMDeviceAdapter] Status: Failure");
+                break;
+            default:
+                Console.WriteLine($"[JCMDeviceAdapter] Unhandled status: {status} (0x{(byte)status:X2})");
+                break;
+        }
+    }
 
     private static void printTime(long ticks, int repetitions)
     {
