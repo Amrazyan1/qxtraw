@@ -33,6 +33,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
     public event Action<string> OnPowerUp;
     public event Action<string> OnInvalidCommand;
     public event Action<string> OnFailure;
+    public event Action<string> OnCasseteRemoved;
 
     public SerialPortIndex port { get => _port; set => _port = value; }
     public bool IsPolling { get => _isPolling; set => _isPolling = value; }
@@ -297,6 +298,12 @@ public class MEIDeviceAdapter : IDeviceAdapter
                 Console.WriteLine("[MEIDeviceAdapter] !IMPORTANT Bill rejected. Reason code: 0x{0:X2}", stdHostToAcc.OutputBuffer[4]);
             }
 
+            if (!parsedStatus.HasFlag(MeiStatus.CassetteAttached))
+            {
+                Console.WriteLine("[MEIDeviceAdapter] !IMPORTANT CassetteRemoved or missing}");
+                OnCasseteRemoved?.Invoke("[MEIDeviceAdapter] Cassette removed or missing");
+            }
+
             Console.WriteLine($"[MEIDeviceAdapter] Polling status: 0x{status:X8} outlen : {outLen}, outpurBufferLenght:{stdHostToAcc.OutputBuffer.Length} {parsedStatus}");
 
             if ((stdHostToAcc.OutputBuffer[0] & 0xF0) == (int)MEIInstruction.ExtendedMsgSet)
@@ -329,7 +336,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
                     Console.WriteLine($"[MEIDeviceAdapter] index: {denominationIndex}");
                     Thread.Sleep(1000);
                     OnEscrowed?.Invoke($"[MEIDeviceAdapter] Escrowed: {stdHostToAcc.OutputBuffer[1]}");
-                    // StackBill();
+                    StackBill();
                     WaitForSignalsAfterStacking(stdHostToAcc, parsedStatus);
                 }
                 else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
@@ -340,7 +347,7 @@ public class MEIDeviceAdapter : IDeviceAdapter
                     Console.WriteLine($"[MEIDeviceAdapter] Denomination index: {denominationIndex}");
                     Thread.Sleep(1000);
                     OnEscrowed?.Invoke($"[MEIDeviceAdapter] Escrowed: {stdHostToAcc.OutputBuffer[1]}");
-                    // StackBill();
+                    StackBill();
                     WaitForSignalsAfterStacking(stdHostToAcc, parsedStatus);
                 }
             }
@@ -366,8 +373,8 @@ public class MEIDeviceAdapter : IDeviceAdapter
         }
         if (outLen >= 10 && parsedStatus.HasFlag(MeiStatus.Stacked))
         {
-            Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[1]);
-            OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[1]}");
+            Console.WriteLine("[MEIDeviceAdapter] [MeiPoll()] Stacked [outLen10]", stdHostToAcc.OutputBuffer[2]);
+            OnStacked?.Invoke($"[MEIDeviceAdapter] Stacked: {stdHostToAcc.OutputBuffer[2]}");
         }
 
     }

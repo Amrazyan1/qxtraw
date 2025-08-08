@@ -27,6 +27,8 @@ public interface IDeviceAdapter : IDisposable
     event Action<String> OnPowerUp;
     event Action<String> OnInvalidCommand;
     event Action<String> OnFailure;
+    event Action<String> OnCasseteRemoved;
+
     // void Run(IDeviceCommand command);
     // void Execute(IDeviceCommand command);
     // void ExecuteWithMenuOption(MenuOption option);

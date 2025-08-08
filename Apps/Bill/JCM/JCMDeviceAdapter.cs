@@ -28,6 +28,7 @@ class JCMDeviceAdapter : IDeviceAdapter
     public event Action<string> OnPowerUp;
     public event Action<string> OnInvalidCommand;
     public event Action<string> OnFailure;
+    public event Action<string> OnCasseteRemoved;
 
     public JCMDeviceAdapter(SerialPortIndex port)
     {
