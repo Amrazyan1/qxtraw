@@ -279,8 +279,6 @@ public class MEIDeviceAdapter : IDeviceAdapter
 
         while (IsPolling)
         {
-            Stopwatch sw = null;
-            sw = Stopwatch.StartNew();
             try
             {
                 outLen = stdHostToAcc.RunOn(_device);// _device.Get(stdHostToAcc);
@@ -330,7 +328,8 @@ public class MEIDeviceAdapter : IDeviceAdapter
                     int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
                     Console.WriteLine($"[MEIDeviceAdapter] index: {denominationIndex}");
                     Thread.Sleep(1000);
-                    StackBill();
+                    OnEscrowed?.Invoke($"[MEIDeviceAdapter] Escrowed: {stdHostToAcc.OutputBuffer[1]}");
+                    // StackBill();
                     WaitForSignalsAfterStacking(stdHostToAcc, parsedStatus);
                 }
                 else if (outLen >= 10 && (((MeiStatus)BitConverter.ToUInt32(stdHostToAcc.OutputBuffer, 2)) & MeiStatus.Escrowed) == MeiStatus.Escrowed)
@@ -340,14 +339,13 @@ public class MEIDeviceAdapter : IDeviceAdapter
                     int denominationIndex = (stdHostToAcc.OutputBuffer[3] & 0x38) >> 3;
                     Console.WriteLine($"[MEIDeviceAdapter] Denomination index: {denominationIndex}");
                     Thread.Sleep(1000);
-                    StackBill();
+                    OnEscrowed?.Invoke($"[MEIDeviceAdapter] Escrowed: {stdHostToAcc.OutputBuffer[1]}");
+                    // StackBill();
                     WaitForSignalsAfterStacking(stdHostToAcc, parsedStatus);
                 }
             }
 
-            Thread.Sleep(500);
-            sw.Stop();
-            printTime(sw.ElapsedTicks, 1);
+            Thread.Sleep(250);
         }
 
         Console.WriteLine("[MEIDeviceAdapter] Devicemanager MeiPoll() exited polling loop.");
