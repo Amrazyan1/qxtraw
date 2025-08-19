@@ -32,4 +32,9 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+  <None Include="_soFiles\*.so" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+
+
 </Project>
